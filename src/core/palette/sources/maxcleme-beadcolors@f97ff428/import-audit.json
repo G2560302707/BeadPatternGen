@@ -1,0 +1,135 @@
+{
+  "pinnedCommit": "f97ff4283d03cef5cd7e1071a86f5892e0c0c61b",
+  "sourceFile": "raw/artkal_s.csv",
+  "sourceRowCount": 199,
+  "includedCount": 178,
+  "excludedSpecialFinishes": [
+    {
+      "code": "SG1",
+      "name": "Glow Yellow",
+      "hex": "#C6C0B4",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "SG2",
+      "name": "Glow Pink",
+      "hex": "#DFABBC",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "SG3",
+      "name": "Glow Blue",
+      "hex": "#6FADC1",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "SL1",
+      "name": "Glitter Blue",
+      "hex": "#3687B2",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "SL2",
+      "name": "Glitter Green",
+      "hex": "#117C52",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "SL3",
+      "name": "Glitter Red",
+      "hex": "#C22933",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "SL4",
+      "name": "Glitter Yellow",
+      "hex": "#CDBD00",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "SP1",
+      "name": "Pearlescent Green",
+      "hex": "#93CA87",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "SP2",
+      "name": "Pearlescent Tangerine",
+      "hex": "#FE7F54",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "SP3",
+      "name": "Pearlescent Orange",
+      "hex": "#F0A149",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "SP4",
+      "name": "Pearlescent Pink",
+      "hex": "#DC9EA9",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "SP5",
+      "name": "Pearlescent Red",
+      "hex": "#D63C53",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "SP6",
+      "name": "Pearlescent Blue",
+      "hex": "#2C4E97",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "SP7",
+      "name": "Pearlescent Purple",
+      "hex": "#64427E",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "SP8",
+      "name": "Pearlescent White",
+      "hex": "#E0DBCA",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "ST1",
+      "name": "Transparent",
+      "hex": "#C7BCB8",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "ST2",
+      "name": "Transparent Pink",
+      "hex": "#F95498",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "ST3",
+      "name": "Transparent Tangering",
+      "hex": "#FF7C45",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "ST4",
+      "name": "Transparent Yellow",
+      "hex": "#DADF3D",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "ST5",
+      "name": "Transparent Green",
+      "hex": "#0FAE58",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    },
+    {
+      "code": "ST6",
+      "name": "Transparent Purple",
+      "hex": "#8477B3",
+      "reason": "finish cannot be represented by a single opaque sRGB HEX"
+    }
+  ],
+  "hexConversion": "int(r),int(g),int(b) -> #RRGGBB uppercase; no rounding beyond 8-bit integers already in CSV"
+}

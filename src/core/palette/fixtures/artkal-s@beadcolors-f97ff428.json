@@ -1,0 +1,901 @@
+{
+  "paletteId": "artkal-s-midi-5mm",
+  "brand": "Artkal",
+  "series": "S Midi 5mm",
+  "version": "beadcolors-f97ff428-2026-08-17",
+  "sourceUrl": "https://github.com/maxcleme/beadcolors/blob/f97ff4283d03cef5cd7e1071a86f5892e0c0c61b/raw/artkal_s.csv",
+  "license": "MIT (Copyright (c) 2020 maxcleme). HEX/RGB are community measurements, not official Artkal values. Artkal is a trademark of its owner; this project is not affiliated or endorsed.",
+  "fetchedAt": "2026-10-24T04:15:00.000Z",
+  "colors": [
+    {
+      "code": "S01",
+      "name": "White",
+      "hex": "#EAEEF3"
+    },
+    {
+      "code": "S02",
+      "name": "Burning Sand",
+      "hex": "#EE927C"
+    },
+    {
+      "code": "S03",
+      "name": "Tangerine",
+      "hex": "#FFA630"
+    },
+    {
+      "code": "S04",
+      "name": "Orange",
+      "hex": "#EB6027"
+    },
+    {
+      "code": "S05",
+      "name": "Tall Poppy",
+      "hex": "#CB3531"
+    },
+    {
+      "code": "S06",
+      "name": "Raspberry Pink",
+      "hex": "#EF67B2"
+    },
+    {
+      "code": "S07",
+      "name": "Gray",
+      "hex": "#959698"
+    },
+    {
+      "code": "S08",
+      "name": "Emerald",
+      "hex": "#1FC467"
+    },
+    {
+      "code": "S09",
+      "name": "Dark Green",
+      "hex": "#00685E"
+    },
+    {
+      "code": "S10",
+      "name": "Baby Blue",
+      "hex": "#2EABD8"
+    },
+    {
+      "code": "S11",
+      "name": "Dark Blue",
+      "hex": "#004FA4"
+    },
+    {
+      "code": "S12",
+      "name": "Pastel Lavender",
+      "hex": "#9165B2"
+    },
+    {
+      "code": "S13",
+      "name": "Black",
+      "hex": "#292A2B"
+    },
+    {
+      "code": "S14",
+      "name": "Sandstorm",
+      "hex": "#E1C835"
+    },
+    {
+      "code": "S15",
+      "name": "Redwood",
+      "hex": "#9A4541"
+    },
+    {
+      "code": "S16",
+      "name": "Brown",
+      "hex": "#65463D"
+    },
+    {
+      "code": "S17",
+      "name": "Light Brown",
+      "hex": "#895D49"
+    },
+    {
+      "code": "S18",
+      "name": "Sand",
+      "hex": "#DCA384"
+    },
+    {
+      "code": "S19",
+      "name": "Bubble Gun",
+      "hex": "#F2BFB8"
+    },
+    {
+      "code": "S20",
+      "name": "Green",
+      "hex": "#009053"
+    },
+    {
+      "code": "S21",
+      "name": "Pastel Green",
+      "hex": "#8BB23A"
+    },
+    {
+      "code": "S22",
+      "name": "Purple",
+      "hex": "#48337E"
+    },
+    {
+      "code": "S23",
+      "name": "Royal Purple",
+      "hex": "#644FA4"
+    },
+    {
+      "code": "S24",
+      "name": "True Blue",
+      "hex": "#0078BF"
+    },
+    {
+      "code": "S25",
+      "name": "Hot Pink",
+      "hex": "#DC519A"
+    },
+    {
+      "code": "S26",
+      "name": "Magenta",
+      "hex": "#DA4383"
+    },
+    {
+      "code": "S27",
+      "name": "Yellow",
+      "hex": "#EAC125"
+    },
+    {
+      "code": "S28",
+      "name": "Lily Pink",
+      "hex": "#DDA1CC"
+    },
+    {
+      "code": "S29",
+      "name": "Pastel Yellow",
+      "hex": "#E1D367"
+    },
+    {
+      "code": "S30",
+      "name": "Shadow Green",
+      "hex": "#9EC9CD"
+    },
+    {
+      "code": "S31",
+      "name": "Sea Mist",
+      "hex": "#B2D7CE"
+    },
+    {
+      "code": "S32",
+      "name": "Beeswax",
+      "hex": "#EED39E"
+    },
+    {
+      "code": "S33",
+      "name": "Maverick",
+      "hex": "#C0B7D7"
+    },
+    {
+      "code": "S34",
+      "name": "Red",
+      "hex": "#B61927"
+    },
+    {
+      "code": "S35",
+      "name": "Mona Lisa",
+      "hex": "#E1CCD2"
+    },
+    {
+      "code": "S36",
+      "name": "Old Pink",
+      "hex": "#CE6D83"
+    },
+    {
+      "code": "S37",
+      "name": "Blue-Green",
+      "hex": "#60BFCB"
+    },
+    {
+      "code": "S38",
+      "name": "Burgundy",
+      "hex": "#A3134A"
+    },
+    {
+      "code": "S39",
+      "name": "Yellow Orange",
+      "hex": "#E68739"
+    },
+    {
+      "code": "S40",
+      "name": "Carnation Pink",
+      "hex": "#E182B0"
+    },
+    {
+      "code": "S41",
+      "name": "Copper",
+      "hex": "#9D5B2E"
+    },
+    {
+      "code": "S42",
+      "name": "Silver",
+      "hex": "#676B73"
+    },
+    {
+      "code": "S43",
+      "name": "Dark Gray",
+      "hex": "#70757B"
+    },
+    {
+      "code": "S44",
+      "name": "Sky Blue",
+      "hex": "#A7CDDE"
+    },
+    {
+      "code": "S45",
+      "name": "Medium Turquoise",
+      "hex": "#00A5A1"
+    },
+    {
+      "code": "S46",
+      "name": "Bright Green",
+      "hex": "#8EC324"
+    },
+    {
+      "code": "S47",
+      "name": "Marigold",
+      "hex": "#B27938"
+    },
+    {
+      "code": "S48",
+      "name": "Corn",
+      "hex": "#ECC03D"
+    },
+    {
+      "code": "S49",
+      "name": "Mulberry Wood",
+      "hex": "#921E5D"
+    },
+    {
+      "code": "S50",
+      "name": "Mandys Pink",
+      "hex": "#E2A488"
+    },
+    {
+      "code": "S51",
+      "name": "Spring Sun",
+      "hex": "#DFDABD"
+    },
+    {
+      "code": "S52",
+      "name": "Picasso",
+      "hex": "#EADE7F"
+    },
+    {
+      "code": "S53",
+      "name": "Turquoise",
+      "hex": "#55A4D9"
+    },
+    {
+      "code": "S54",
+      "name": "Light Blue",
+      "hex": "#0084CE"
+    },
+    {
+      "code": "S55",
+      "name": "Pistachio",
+      "hex": "#97CF87"
+    },
+    {
+      "code": "S56",
+      "name": "Bright Carrot",
+      "hex": "#F96F40"
+    },
+    {
+      "code": "S57",
+      "name": "Buccaneer",
+      "hex": "#B35540"
+    },
+    {
+      "code": "S58",
+      "name": "Paprika",
+      "hex": "#B11836"
+    },
+    {
+      "code": "S59",
+      "name": "Butterfly Bush",
+      "hex": "#4F3989"
+    },
+    {
+      "code": "S60",
+      "name": "Lavender",
+      "hex": "#8A7EC2"
+    },
+    {
+      "code": "S61",
+      "name": "Key Lomen Pie",
+      "hex": "#CDC03F"
+    },
+    {
+      "code": "S62",
+      "name": "Green Tea",
+      "hex": "#00765F"
+    },
+    {
+      "code": "S63",
+      "name": "Metallic Gold",
+      "hex": "#696046"
+    },
+    {
+      "code": "S64",
+      "name": "Black Rock",
+      "hex": "#36384D"
+    },
+    {
+      "code": "S65",
+      "name": "Canary",
+      "hex": "#E2E65D"
+    },
+    {
+      "code": "S66",
+      "name": "Blaze Orange",
+      "hex": "#E5533C"
+    },
+    {
+      "code": "S67",
+      "name": "Vanilla",
+      "hex": "#E9C1A6"
+    },
+    {
+      "code": "S68",
+      "name": "Tan",
+      "hex": "#CC9B74"
+    },
+    {
+      "code": "S69",
+      "name": "Mine Shaft",
+      "hex": "#383E44"
+    },
+    {
+      "code": "S70",
+      "name": "Drark Algae",
+      "hex": "#ADAD29"
+    },
+    {
+      "code": "S71",
+      "name": "Jade Green",
+      "hex": "#007D2B"
+    },
+    {
+      "code": "S72",
+      "name": "Light Sea Blue",
+      "hex": "#68C4D2"
+    },
+    {
+      "code": "S73",
+      "name": "Steel Blue",
+      "hex": "#5AB0BF"
+    },
+    {
+      "code": "S74",
+      "name": "Azure",
+      "hex": "#009EC2"
+    },
+    {
+      "code": "S75",
+      "name": "Dark Steel Blue",
+      "hex": "#0084B2"
+    },
+    {
+      "code": "S76",
+      "name": "Sea Blue",
+      "hex": "#0093A9"
+    },
+    {
+      "code": "S77",
+      "name": "Ghost While",
+      "hex": "#D4D8D3"
+    },
+    {
+      "code": "S78",
+      "name": "Ash Grey",
+      "hex": "#C2C4C2"
+    },
+    {
+      "code": "S79",
+      "name": "Light Gray",
+      "hex": "#A7ACAD"
+    },
+    {
+      "code": "S80",
+      "name": "Dark Olive",
+      "hex": "#8F8E3C"
+    },
+    {
+      "code": "S81",
+      "name": "Deer",
+      "hex": "#BF9168"
+    },
+    {
+      "code": "S82",
+      "name": "Clay",
+      "hex": "#AA744E"
+    },
+    {
+      "code": "S83",
+      "name": "Sienna",
+      "hex": "#BB6833"
+    },
+    {
+      "code": "S84",
+      "name": "Deep Chestnut",
+      "hex": "#BE5D65"
+    },
+    {
+      "code": "S85",
+      "name": "Red Wine",
+      "hex": "#99323A"
+    },
+    {
+      "code": "S86",
+      "name": "Goldenrod",
+      "hex": "#E8AE00"
+    },
+    {
+      "code": "S87",
+      "name": "Coral Red",
+      "hex": "#EC625E"
+    },
+    {
+      "code": "S88",
+      "name": "Dark Pink",
+      "hex": "#D62779"
+    },
+    {
+      "code": "S89",
+      "name": "Charcoal Gray",
+      "hex": "#565A5E"
+    },
+    {
+      "code": "S90",
+      "name": "Pastel Orange",
+      "hex": "#D9B35E"
+    },
+    {
+      "code": "S91",
+      "name": "Brunswick Green",
+      "hex": "#153838"
+    },
+    {
+      "code": "S92",
+      "name": "Dandelion",
+      "hex": "#CEA433"
+    },
+    {
+      "code": "S93",
+      "name": "Pale Skin",
+      "hex": "#DCB794"
+    },
+    {
+      "code": "S94",
+      "name": "Warm Blush",
+      "hex": "#DD9285"
+    },
+    {
+      "code": "S95",
+      "name": "Salmon",
+      "hex": "#E07B69"
+    },
+    {
+      "code": "S96",
+      "name": "Apricot",
+      "hex": "#EF7F61"
+    },
+    {
+      "code": "S97",
+      "name": "Papaya",
+      "hex": "#DC772B"
+    },
+    {
+      "code": "S98",
+      "name": "Himalaya Blue",
+      "hex": "#6AAEDB"
+    },
+    {
+      "code": "S99",
+      "name": "Waterfall",
+      "hex": "#61BBD3"
+    },
+    {
+      "code": "S100",
+      "name": "Lagoon",
+      "hex": "#279BBE"
+    },
+    {
+      "code": "S101",
+      "name": "Electric Blue",
+      "hex": "#00A7E3"
+    },
+    {
+      "code": "S102",
+      "name": "Pool Blue",
+      "hex": "#0077CA"
+    },
+    {
+      "code": "S103",
+      "name": "Caribbian Blue",
+      "hex": "#005AA9"
+    },
+    {
+      "code": "S104",
+      "name": "Deep Water",
+      "hex": "#007F9E"
+    },
+    {
+      "code": "S105",
+      "name": "Petrol Blue",
+      "hex": "#007D91"
+    },
+    {
+      "code": "S106",
+      "name": "Wegdewood Blue",
+      "hex": "#00649A"
+    },
+    {
+      "code": "S107",
+      "name": "Pond Blue",
+      "hex": "#006C9F"
+    },
+    {
+      "code": "S108",
+      "name": "Seashell Beige",
+      "hex": "#CFC179"
+    },
+    {
+      "code": "S109",
+      "name": "Beige",
+      "hex": "#C4AE64"
+    },
+    {
+      "code": "S110",
+      "name": "Beach Beige",
+      "hex": "#AB9745"
+    },
+    {
+      "code": "S111",
+      "name": "Caffe Latté",
+      "hex": "#978138"
+    },
+    {
+      "code": "S112",
+      "name": "Oaktree Brown",
+      "hex": "#907C41"
+    },
+    {
+      "code": "S113",
+      "name": "Khaki",
+      "hex": "#B6AE84"
+    },
+    {
+      "code": "S114",
+      "name": "Light Greengray",
+      "hex": "#A59F65"
+    },
+    {
+      "code": "S115",
+      "name": "Mossy Green",
+      "hex": "#938D54"
+    },
+    {
+      "code": "S116",
+      "name": "Earth Green",
+      "hex": "#8D8B51"
+    },
+    {
+      "code": "S117",
+      "name": "Sage Green",
+      "hex": "#7F7E49"
+    },
+    {
+      "code": "S118",
+      "name": "Pinetree Green",
+      "hex": "#5B6E35"
+    },
+    {
+      "code": "S119",
+      "name": "Frosty Blue",
+      "hex": "#8AD5C9"
+    },
+    {
+      "code": "S120",
+      "name": "Polar Mint",
+      "hex": "#7CD2A5"
+    },
+    {
+      "code": "S121",
+      "name": "Celadon Green",
+      "hex": "#72AC9A"
+    },
+    {
+      "code": "S122",
+      "name": "Eucalyptus",
+      "hex": "#00B26F"
+    },
+    {
+      "code": "S123",
+      "name": "Clover Field",
+      "hex": "#3EB724"
+    },
+    {
+      "code": "S124",
+      "name": "Pooltable Felt",
+      "hex": "#0D7535"
+    },
+    {
+      "code": "S125",
+      "name": "Snake Green",
+      "hex": "#007D6E"
+    },
+    {
+      "code": "S126",
+      "name": "Dark Eucalyptus",
+      "hex": "#006E69"
+    },
+    {
+      "code": "S127",
+      "name": "Marsmallow Rose",
+      "hex": "#DFC3E1"
+    },
+    {
+      "code": "S128",
+      "name": "Light Grape",
+      "hex": "#D38ED4"
+    },
+    {
+      "code": "S129",
+      "name": "Rosebud Pink",
+      "hex": "#D5A6BA"
+    },
+    {
+      "code": "S130",
+      "name": "Fuschia",
+      "hex": "#D6668E"
+    },
+    {
+      "code": "S131",
+      "name": "Candy Violet",
+      "hex": "#B8AAD9"
+    },
+    {
+      "code": "S132",
+      "name": "Flamingo",
+      "hex": "#DF486D"
+    },
+    {
+      "code": "S133",
+      "name": "Pink Plum",
+      "hex": "#BC3CA6"
+    },
+    {
+      "code": "S134",
+      "name": "Amethyst",
+      "hex": "#803897"
+    },
+    {
+      "code": "S135",
+      "name": "Moonlight Blue",
+      "hex": "#A7BAE1"
+    },
+    {
+      "code": "S136",
+      "name": "Summer Rain",
+      "hex": "#AFB8DF"
+    },
+    {
+      "code": "S137",
+      "name": "Azur Blue",
+      "hex": "#6B9AD4"
+    },
+    {
+      "code": "S138",
+      "name": "Cornflower Blue",
+      "hex": "#5A89CE"
+    },
+    {
+      "code": "S139",
+      "name": "Forget Me Not",
+      "hex": "#658AD0"
+    },
+    {
+      "code": "S140",
+      "name": "Indigo",
+      "hex": "#566CBD"
+    },
+    {
+      "code": "S141",
+      "name": "Horizon Blue",
+      "hex": "#4D74C6"
+    },
+    {
+      "code": "S142",
+      "name": "Cobolt",
+      "hex": "#416DBE"
+    },
+    {
+      "code": "S143",
+      "name": "Royal Blue",
+      "hex": "#30429E"
+    },
+    {
+      "code": "S144",
+      "name": "Marine",
+      "hex": "#024288"
+    },
+    {
+      "code": "S145",
+      "name": "Pale Yellow Moss",
+      "hex": "#D6CA6A"
+    },
+    {
+      "code": "S146",
+      "name": "Bloodrose Red",
+      "hex": "#9D1A38"
+    },
+    {
+      "code": "S147",
+      "name": "Spearmint",
+      "hex": "#80B7A1"
+    },
+    {
+      "code": "S148",
+      "name": "Mocha",
+      "hex": "#7A594F"
+    },
+    {
+      "code": "S149",
+      "name": "Creme",
+      "hex": "#EFDBA1"
+    },
+    {
+      "code": "S150",
+      "name": "Iris Violet",
+      "hex": "#8884D0"
+    },
+    {
+      "code": "S151",
+      "name": "Forrest Green",
+      "hex": "#345621"
+    },
+    {
+      "code": "S152",
+      "name": "Lilac",
+      "hex": "#AEADDC"
+    },
+    {
+      "code": "S153",
+      "name": "Pale Lilac",
+      "hex": "#BCC3E1"
+    },
+    {
+      "code": "S154",
+      "name": "Sahara Sand",
+      "hex": "#E3C09A"
+    },
+    {
+      "code": "S155",
+      "name": "Sunkissed Teint",
+      "hex": "#C58B60"
+    },
+    {
+      "code": "S156",
+      "name": "Steel Grey",
+      "hex": "#5A5F65"
+    },
+    {
+      "code": "S157",
+      "name": "Iron Grey",
+      "hex": "#4C5156"
+    },
+    {
+      "code": "S158",
+      "name": "Pepper",
+      "hex": "#3A3E42"
+    },
+    {
+      "code": "S159",
+      "name": "Oslo Gray",
+      "hex": "#82878B"
+    },
+    {
+      "code": "SE1",
+      "name": "Moon",
+      "hex": "#F1F4FA"
+    },
+    {
+      "code": "SE2",
+      "name": "Raincloud",
+      "hex": "#A2B2D3"
+    },
+    {
+      "code": "SE3",
+      "name": "Winter",
+      "hex": "#83A6DC"
+    },
+    {
+      "code": "SE4",
+      "name": "Tide",
+      "hex": "#70D8ED"
+    },
+    {
+      "code": "SE5",
+      "name": "Aquamarine",
+      "hex": "#69E3D5"
+    },
+    {
+      "code": "SE6",
+      "name": "Neptune",
+      "hex": "#2A63C8"
+    },
+    {
+      "code": "SE7",
+      "name": "Rose Quartz",
+      "hex": "#D5AEC9"
+    },
+    {
+      "code": "SE8",
+      "name": "Mauve",
+      "hex": "#AF739A"
+    },
+    {
+      "code": "SE9",
+      "name": "Dark Mauve",
+      "hex": "#704B6D"
+    },
+    {
+      "code": "SE10",
+      "name": "Wild Berry",
+      "hex": "#D977CD"
+    },
+    {
+      "code": "SE11",
+      "name": "Sugar Plum",
+      "hex": "#B643AC"
+    },
+    {
+      "code": "SE12",
+      "name": "Desert",
+      "hex": "#DEB181"
+    },
+    {
+      "code": "SE13",
+      "name": "Peanut",
+      "hex": "#BC9D77"
+    },
+    {
+      "code": "SE14",
+      "name": "Toffee",
+      "hex": "#AC7F5D"
+    },
+    {
+      "code": "SE15",
+      "name": "Bark",
+      "hex": "#A37E66"
+    },
+    {
+      "code": "SN1",
+      "name": "Neon Orange",
+      "hex": "#FF7405"
+    },
+    {
+      "code": "SN2",
+      "name": "Neon Green",
+      "hex": "#01C63E"
+    },
+    {
+      "code": "SN3",
+      "name": "Neon Yellow",
+      "hex": "#F2F33C"
+    },
+    {
+      "code": "SN4",
+      "name": "Neon Rose",
+      "hex": "#FF477A"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+Thumbs.db
+coverage
+.vite
+*.tsbuildinfo
+
+# 工具本地状态与测试产物
+.workbuddy/
+test-results/
+playwright-report/
+
+# C4：大体积二进制资源，按需生成（pnpm models:download / pnpm ort:sync）
+public/ort/
+public/models/*.onnx
+public/models/*.part

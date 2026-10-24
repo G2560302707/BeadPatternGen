@@ -1,0 +1,16 @@
+{
+  "paletteId": "example-brand-series",
+  "brand": "EXAMPLE_BRAND",
+  "series": "EXAMPLE_SERIES Midi 5mm",
+  "version": "template-not-for-production",
+  "sourceUrl": "https://example.invalid/you-must-replace-this-with-a-real-source",
+  "license": "TEMPLATE ONLY — not a real palette. Replace every field after you obtain a license-clear source. Do not ship this file as a production fixture.",
+  "fetchedAt": "1970-01-01T00:00:00.000Z",
+  "colors": [
+    { "code": "EX-001", "name": "Example White", "hex": "#F4F4F4" },
+    { "code": "EX-002", "name": "Example Red", "hex": "#C41E3A" },
+    { "code": "EX-003", "name": "Example Blue", "hex": "#1D4E89" },
+    { "code": "EX-004", "name": "Example Yellow", "hex": "#E2C044" },
+    { "code": "EX-005", "name": "Example Black", "hex": "#1A1A1A" }
+  ]
+}
