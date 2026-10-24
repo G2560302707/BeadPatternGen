@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { SegmentationError } from "./errors";
-import { maskFromModelOutput, normalizeModelOutput, resizeGrayBilinear } from "./postprocess";
+import {
+  adaptiveMaskThreshold,
+  maskFromModelOutput,
+  normalizeModelOutput,
+  otsuThreshold,
+  resizeGrayBilinear,
+} from "./postprocess";
 import type { SegmentationModelSpec } from "./types";
 
 const MODEL = {
@@ -46,6 +52,65 @@ describe("normalizeModelOutput", () => {
 
   it("拒绝空输出", () => {
     expect(() => normalizeModelOutput(new Float32Array(0))).toThrow(/为空/);
+  });
+
+  it("离群点不再拉扁值域（分位截断）", () => {
+    // 99% 的值在 [0, 1]，一个离群点在 1000：分位归一化后主体应占满值域，
+    // 而不是被 min-max 压成一团暗值。
+    const output = new Float32Array(1000);
+    for (let i = 0; i < 999; i += 1) output[i] = i % 2 === 0 ? 0.9 : 0.1;
+    output[999] = 1000;
+    const normalized = normalizeModelOutput(output);
+    let high = 0;
+    let low = 0;
+    for (const value of normalized) {
+      if (value > 200) high += 1;
+      if (value < 55) low += 1;
+    }
+    expect(high).toBeGreaterThanOrEqual(400);
+    expect(low).toBeGreaterThanOrEqual(400);
+  });
+
+  it("弱响应图保持 min-max 回退（分位区间 ≈ 全量程）", () => {
+    const output = new Float32Array(1000);
+    for (let i = 0; i < 1000; i += 1) output[i] = i / 999;
+    const normalized = normalizeModelOutput(output);
+    expect(normalized[0]).toBe(0);
+    expect(normalized[999]).toBe(255);
+  });
+});
+
+describe("otsuThreshold / adaptiveMaskThreshold", () => {
+  it("finds the valley of a bimodal map", () => {
+    const data = new Uint8ClampedArray(200);
+    for (let i = 0; i < 100; i += 1) data[i] = 20;
+    for (let i = 100; i < 200; i += 1) data[i] = 240;
+    expect(otsuThreshold(data)).toBeGreaterThanOrEqual(20);
+    expect(otsuThreshold(data)).toBeLessThan(240);
+    const threshold = adaptiveMaskThreshold(data);
+    expect(threshold).toBeGreaterThan(20);
+    expect(threshold).toBeLessThan(240);
+  });
+
+  it("returns -1 / fallback on degenerate maps", () => {
+    const flat = new Uint8ClampedArray(64).fill(7);
+    expect(otsuThreshold(flat)).toBe(-1);
+    expect(adaptiveMaskThreshold(flat, 128)).toBe(128);
+  });
+
+  it("clamps extreme otsu results into [48, 200]", () => {
+    // 几乎全前景（一个 0）：otsu 落在 0，被夹到 48 —— 高值像素仍是前景。
+    const almostAllFg = new Uint8ClampedArray(1000).fill(255);
+    almostAllFg[0] = 0;
+    expect(otsuThreshold(almostAllFg)).toBe(0);
+    expect(adaptiveMaskThreshold(almostAllFg)).toBe(48);
+
+    // 两组高值（240/255）分裂：otsu 落在 240，被夹到 200。
+    const highSplit = new Uint8ClampedArray(1000);
+    for (let i = 0; i < 500; i += 1) highSplit[i] = 240;
+    for (let i = 500; i < 1000; i += 1) highSplit[i] = 255;
+    expect(otsuThreshold(highSplit)).toBe(240);
+    expect(adaptiveMaskThreshold(highSplit)).toBe(200);
   });
 });
 

@@ -10,6 +10,7 @@ coverage
 
 # 工具本地状态与测试产物
 .workbuddy/
+.zcode/
 test-results/
 playwright-report/
 
@@ -17,3 +18,4 @@ playwright-report/
 public/ort/
 public/models/*.onnx
 public/models/*.part
+bench/

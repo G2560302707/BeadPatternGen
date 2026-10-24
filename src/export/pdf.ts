@@ -23,6 +23,10 @@ export interface PdfExportOptions {
   mode: PdfMode;
   overlap: number;
   showCodes: boolean;
+  /** 制作版超出整档格点容量时，改用小数格点把整图缩放进单页，不再切片分页。 */
+  fitSinglePage?: boolean;
+  /** 是否追加色表页（独立分页，不影响图纸本体）。 */
+  includeLegend?: boolean;
 }
 
 export interface PdfExportResult {
@@ -80,14 +84,40 @@ export function planMakeLayout(
   height: number,
   paper: PaperSizeName,
   overlap: number,
+  fitSinglePage = true,
 ): MakeLayout {
   let cellPt = DEFAULT_CELL_PT;
+  let fitsInteger = false;
   for (let tryPt = DEFAULT_CELL_PT; tryPt >= MIN_CELL_PT; tryPt -= 1) {
     const cap = pdfPageCapacity(paper, tryPt, true);
     if (width <= cap.maxCols && height <= cap.maxRows) {
       cellPt = tryPt;
+      fitsInteger = true;
       break;
     }
+  }
+
+  // 整档格点装不下：单页模式用小数格点缩放整图（PDF 是矢量，缩放不失真），
+  // 保留标尺 / 每 10 格粗线；色号与标尺数字在格点过小时自动降级省略。
+  if (!fitsInteger && fitSinglePage) {
+    const size = PAPER_PT[paper];
+    const usableW = size.width - MARGIN * 2 - RULER * 2;
+    const usableH = size.height - MARGIN * 2 - HEADER - RULER * 2;
+    const fitPt = Math.min(usableW / Math.max(1, width), usableH / Math.max(1, height));
+    const full: PageSlice = {
+      page: 1,
+      row: 0,
+      col: 0,
+      x0: 0,
+      y0: 0,
+      cols: width,
+      rows: height,
+      overlapRight: 0,
+      overlapBottom: 0,
+      isLastCol: true,
+      isLastRow: true,
+    };
+    return { cellPt: fitPt, maxCols: width, maxRows: height, slices: [full], colPages: 1, rowPages: 1 };
   }
 
   const cap = pdfPageCapacity(paper, cellPt, true);
@@ -176,8 +206,12 @@ function drawRulers(
 ): void {
   const color = rgb(0.17, 0.13, 0.09);
   const size = Math.min(7, Math.max(5, cell * 0.7));
+  // 小格点（单页缩放）下逐格数字会糊成一片，只在每 10 格粗线处标注。
+  const sparse = cell < 6;
   for (let lx = 0; lx < slice.cols; lx += 1) {
-    const label = String(displayCoord(slice.x0 + lx));
+    const gx = slice.x0 + lx;
+    if (sparse && lx !== 0 && !isMajorLine(gx)) continue;
+    const label = String(displayCoord(gx));
     const cx = originX + lx * cell + cell / 2 - 3;
     page.drawText(label, { x: cx, y: originYTop + 4, size, font, color });
     page.drawText(label, {
@@ -189,7 +223,9 @@ function drawRulers(
     });
   }
   for (let ly = 0; ly < slice.rows; ly += 1) {
-    const label = String(displayCoord(slice.y0 + ly));
+    const gy = slice.y0 + ly;
+    if (sparse && ly !== 0 && !isMajorLine(gy)) continue;
+    const label = String(displayCoord(gy));
     const cy = originYTop - (ly + 0.65) * cell;
     page.drawText(label, { x: originX - RULER + 1, y: cy, size, font, color });
     page.drawText(label, {
@@ -328,7 +364,14 @@ async function appendLegendPages(
 
 export async function exportPdf(
   pattern: BeadPattern,
-  options: PdfExportOptions = { paper: "a4", mode: "make", overlap: 2, showCodes: true },
+  options: PdfExportOptions = {
+    paper: "a4",
+    mode: "make",
+    overlap: 2,
+    showCodes: true,
+    fitSinglePage: true,
+    includeLegend: true,
+  },
 ): Promise<PdfExportResult> {
   const stats = assertExportReady(pattern);
   const paper = PAPER_PT[options.paper];
@@ -370,7 +413,13 @@ export async function exportPdf(
     slices = [full];
     cellPt = cell;
   } else {
-    const layout = planMakeLayout(pattern.width, pattern.height, options.paper, options.overlap);
+    const layout = planMakeLayout(
+      pattern.width,
+      pattern.height,
+      options.paper,
+      options.overlap,
+      options.fitSinglePage ?? true,
+    );
     slices = layout.slices;
     cellPt = layout.cellPt;
     colPages = layout.colPages;
@@ -409,7 +458,8 @@ export async function exportPdf(
     }
   }
 
-  const legendPageCount = await appendLegendPages(doc, font, options.paper, stats);
+  const legendPageCount =
+    options.includeLegend === false ? 0 : await appendLegendPages(doc, font, options.paper, stats);
   const bytes = await doc.save();
   return {
     bytes,

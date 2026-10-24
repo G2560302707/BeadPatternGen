@@ -6,7 +6,7 @@
  *
  * 用法：
  *   pnpm models:download     # 首次需要，脚本本身不下载模型
- *   pnpm smoke:segmentation [--image path/to/photo.jpg]
+ *   pnpm smoke:segmentation [--image path/to/photo.jpg] [--model u2netp]
  *
  * 不传 --image 时使用 rembg 仓库的示例照片（仅用于本地冒烟，不随仓库分发）。
  */
@@ -26,6 +26,9 @@ const imagePath =
   imageArgIndex >= 0 && process.argv[imageArgIndex + 1]
     ? path.resolve(process.argv[imageArgIndex + 1])
     : defaultImage;
+const modelArgIndex = process.argv.indexOf("--model");
+const modelId =
+  modelArgIndex >= 0 && process.argv[modelArgIndex + 1] ? process.argv[modelArgIndex + 1] : "u2netp";
 
 async function ensureImage() {
   try {
@@ -82,7 +85,12 @@ async function runSegmentation(sourceImageId) {
       const events = [];
       const started = performance.now();
       const candidates = await client.segment(
-        { sourceImageId: data.sourceImageId, imageBytes: bytes, mimeType: data.mimeType },
+        {
+          sourceImageId: data.sourceImageId,
+          imageBytes: bytes,
+          mimeType: data.mimeType,
+          ...(data.modelId ? { modelId: data.modelId } : {}),
+        },
         { onProgress: (progress) => events.push(progress) },
       );
       const elapsedMs = performance.now() - started;
@@ -107,7 +115,7 @@ async function runSegmentation(sourceImageId) {
         cacheKeys: await caches.keys(),
       };
     },
-    { base64, mimeType: "image/jpeg", sourceImageId },
+    { base64, mimeType: "image/jpeg", sourceImageId, modelId },
   );
   await page.close();
   return { ...result, modelRequests, pageErrors };
@@ -129,6 +137,7 @@ try {
     result.confidence?.toFixed(3),
   );
   console.log("[smoke] 模型", JSON.stringify(result.model));
+  console.log("[smoke] 指定模型", modelId);
   console.log("[smoke] 模型网络请求", result.modelRequests.length);
   console.log("[smoke] Cache Storage", result.cacheKeys);
 

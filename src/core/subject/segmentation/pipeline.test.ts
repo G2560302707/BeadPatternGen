@@ -48,11 +48,12 @@ const BASE = {
 };
 
 describe("runSegmentation", () => {
-  it("输出候选主体，并按阶段上报进度", async () => {
+  it("关闭精修时输出候选主体，并按阶段上报进度", async () => {
     const progress: string[] = [];
     const candidate = await runSegmentation({
       ...BASE,
       session: session(),
+      refineCrop: false,
       onProgress: (stage, done, total) => progress.push(`${stage}:${done}/${total}`),
     });
 
@@ -70,6 +71,29 @@ describe("runSegmentation", () => {
       "postprocess:0/1",
       "postprocess:1/1",
     ]);
+  });
+
+  it("默认开启精修：bbox 裁剪区二次推理，裁剪区无主体时保留粗蒙版", async () => {
+    let runCalls = 0;
+    const progress: string[] = [];
+    const candidate = await runSegmentation({
+      ...BASE,
+      session: session(async () => {
+        runCalls += 1;
+        return centerOutput();
+      }),
+      onProgress: (stage, done, total) => progress.push(`${stage}:${done}/${total}`),
+    });
+
+    // 第一遍全图 + 第二遍裁剪区。
+    expect(runCalls).toBe(2);
+    expect(progress).toContain("inference:0/2");
+    expect(progress).toContain("inference:2/2");
+    // 假会话对 2×2 裁剪区返回同样的 4×4 输出，下采样后无前景（E_NO_SUBJECT），
+    // 精修回退：保留第一遍粗蒙版。
+    expect(candidate.bbox).toEqual({ x: 1, y: 1, width: 2, height: 2 });
+    expect(candidate.mask.threshold).toBeGreaterThanOrEqual(48);
+    expect(candidate.mask.threshold).toBeLessThanOrEqual(200);
   });
 
   it("开始前取消，抛 E_CANCELLED 且不调用模型", async () => {

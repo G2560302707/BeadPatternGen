@@ -8,15 +8,18 @@
  */
 
 import { SUBJECT_LABEL_MAIN } from "../types";
-import type { SubjectCandidate } from "../types";
+import type { SubjectCandidate, SubjectMask } from "../types";
+import { computeMaskBBox } from "../mask";
 import { SegmentationError, cancelledError, wrapSegmentationError } from "./errors";
-import { maskFromModelOutput } from "./postprocess";
+import { adaptiveMaskThreshold, maskFromModelOutput } from "./postprocess";
 import { preprocessForModel, validateRgbaImage } from "./preprocess";
+import { cropRgbaImage, mergeMaskRegion, planRefineCrop } from "./refine";
 import { DEFAULT_MIN_FOREGROUND_RATIO } from "./types";
 import type { SegmentationRunOptions } from "./types";
 
-/** 算法版本：预处理 / 后处理语义变化时递增，便于结果复现与缓存失效。 */
-export const SEGMENTATION_ALGORITHM_VERSION = "1.0";
+/** 算法版本：预处理 / 后处理语义变化时递增，便于结果复现与缓存失效。
+ * 1.1：分位归一化 + Otsu 自适应阈值 + bbox 裁剪二次推理。 */
+export const SEGMENTATION_ALGORITHM_VERSION = "1.1";
 
 function defaultCandidateId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -74,7 +77,8 @@ export async function runSegmentation(options: SegmentationRunOptions): Promise<
   ensureNotCancelled(options);
   emit(options, "preprocess", 1, 1);
 
-  emit(options, "inference", 0, 1);
+  const refineEnabled = options.refineCrop !== false;
+  emit(options, "inference", 0, refineEnabled ? 2 : 1);
   let output: Float32Array;
   try {
     output = await session.run(input);
@@ -83,7 +87,7 @@ export async function runSegmentation(options: SegmentationRunOptions): Promise<
     throw wrapSegmentationError(error);
   }
   ensureNotCancelled(options);
-  emit(options, "inference", 1, 1);
+  emit(options, "inference", 1, refineEnabled ? 2 : 1);
 
   emit(options, "postprocess", 0, 1);
   let result;
@@ -107,6 +111,64 @@ export async function runSegmentation(options: SegmentationRunOptions): Promise<
     );
   }
   ensureNotCancelled(options);
+
+  // bbox 裁剪二次推理：主体只占画面一部分时，裁剪区重跑一次拿回边界分辨率。
+  if (refineEnabled) {
+    const plan = planRefineCrop(result.bbox, image.width, image.height);
+    if (plan) {
+      const cropImage = cropRgbaImage(image, plan.crop);
+      const cropInput = preprocessForModel(cropImage, model);
+      let cropOutput: Float32Array;
+      try {
+        cropOutput = await session.run(cropInput);
+      } catch (error) {
+        if (error instanceof SegmentationError) throw error;
+        throw wrapSegmentationError(error);
+      }
+      ensureNotCancelled(options);
+      try {
+        const cropResult = maskFromModelOutput({
+          output: cropOutput,
+          outputWidth: model.inputWidth,
+          outputHeight: model.inputHeight,
+          imageWidth: plan.crop.width,
+          imageHeight: plan.crop.height,
+          sourceImageId,
+          model,
+          createdAt,
+        });
+        const mergedData = mergeMaskRegion(
+          result.mask.data,
+          cropResult.mask.data,
+          image.width,
+          plan.crop,
+        );
+        const threshold = adaptiveMaskThreshold(mergedData);
+        const mergedMask: SubjectMask = { ...result.mask, data: mergedData, threshold };
+        const mergedBBox = computeMaskBBox(mergedMask) ?? result.bbox;
+        let foregroundPixels = 0;
+        let confidenceSum = 0;
+        for (let i = 0; i < mergedData.length; i += 1) {
+          const value = mergedData[i] as number;
+          if (value > threshold) {
+            foregroundPixels += 1;
+            confidenceSum += value;
+          }
+        }
+        result = {
+          mask: mergedMask,
+          bbox: mergedBBox,
+          confidence: foregroundPixels === 0 ? 0 : confidenceSum / foregroundPixels / 255,
+          foregroundRatio: foregroundPixels / mergedData.length,
+        };
+      } catch (error) {
+        // 二次推理在裁剪区找不到主体属于精修失败：保留第一遍粗蒙版，
+        // 不让它毁掉整次识别；其它错误（推理崩溃等）照常上抛。
+        if (!(error instanceof SegmentationError) || error.code !== "E_NO_SUBJECT") throw error;
+      }
+    }
+  }
+  if (refineEnabled) emit(options, "inference", 2, 2);
   emit(options, "postprocess", 1, 1);
 
   if (result.foregroundRatio < minForegroundRatio) {

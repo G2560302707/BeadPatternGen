@@ -26,6 +26,8 @@ function assertPositiveInteger(value: number, label: string): void {
 /**
  * 把模型显著性图归一化到 0–255。
  *
+ * - 先取 0.5% / 99.5% 分位作为 0 / 255 锚点（合计裁掉 1% 质量，抗离群点：
+ *   一小块极端响应不再拉扁全图值域）；分位区间退化时回退全图 min-max；
  * - 所有值相同（含空输出）时返回全 0，交由上层判定 `E_NO_SUBJECT`；
  * - 出现 NaN / Infinity 视为推理失败，不做静默修补。
  */
@@ -50,11 +52,80 @@ export function normalizeModelOutput(output: Float32Array): Uint8ClampedArray {
   const range = max - min;
   if (range < 1e-6) return result;
 
-  const scale = 255 / range;
+  // 4096 桶直方图求分位锚点。
+  const bins = new Uint32Array(4096);
+  const binScale = bins.length / range;
   for (let i = 0; i < output.length; i += 1) {
-    result[i] = Math.round(((output[i] as number) - min) * scale);
+    const bin = Math.min(bins.length - 1, Math.floor(((output[i] as number) - min) * binScale));
+    bins[bin] = (bins[bin] ?? 0) + 1;
+  }
+  const lowTarget = output.length * 0.005;
+  const highTarget = output.length * 0.995;
+  let low = min;
+  let high = max;
+  let cumulative = 0;
+  let lowBin = -1;
+  for (let bin = 0; bin < bins.length; bin += 1) {
+    cumulative += bins[bin] as number;
+    if (lowBin === -1 && cumulative >= lowTarget) {
+      lowBin = bin;
+      low = min + bin / binScale;
+    }
+    if (cumulative >= highTarget) {
+      high = min + (bin + 1) / binScale;
+      break;
+    }
+  }
+  const span = high - low;
+  const mapped = span > 1e-9 ? 255 / span : 255 / range;
+  for (let i = 0; i < output.length; i += 1) {
+    result[i] = Math.round(((output[i] as number) - low) * mapped);
   }
   return result;
+}
+
+/**
+ * Otsu 自适应阈值：最大化前景 / 背景类间方差。
+ * 返回 0–255 的整数阈值；直方图退化（单一值）时返回 -1，由调用方回退固定阈值。
+ */
+export function otsuThreshold(data: Uint8ClampedArray): number {
+  const histogram = new Uint32Array(256);
+  for (let i = 0; i < data.length; i += 1) {
+    const level = data[i] as number;
+    histogram[level] = (histogram[level] ?? 0) + 1;
+  }
+  const total = data.length;
+  let sumAll = 0;
+  for (let t = 0; t < 256; t += 1) sumAll += t * (histogram[t] as number);
+
+  let weightBackground = 0;
+  let sumBackground = 0;
+  let bestVariance = 0;
+  let bestThreshold = -1;
+  for (let t = 0; t < 256; t += 1) {
+    weightBackground += histogram[t] as number;
+    if (weightBackground === 0) continue;
+    const weightForeground = total - weightBackground;
+    if (weightForeground === 0) break;
+    sumBackground += t * (histogram[t] as number);
+    const meanBackground = sumBackground / weightBackground;
+    const meanForeground = (sumAll - sumBackground) / weightForeground;
+    const variance = weightBackground * weightForeground * (meanBackground - meanForeground) ** 2;
+    if (variance > bestVariance) {
+      bestVariance = variance;
+      bestThreshold = t;
+    }
+  }
+  return bestThreshold;
+}
+
+/** 自适应阈值的最终决策：Otsu 结果夹在 [48, 200]，退化时回退默认 128。 */
+export function adaptiveMaskThreshold(
+  data: Uint8ClampedArray,
+  fallback: number = DEFAULT_MASK_THRESHOLD,
+): number {
+  const otsu = otsuThreshold(data);
+  return otsu >= 0 ? Math.min(200, Math.max(48, otsu)) : fallback;
 }
 
 interface AxisSample {
@@ -134,8 +205,13 @@ export interface MaskFromOutputInput {
   imageHeight: number;
   sourceImageId: string;
   model: SegmentationModelSpec;
-  /** 前景阈值，默认 `DEFAULT_MASK_THRESHOLD`。 */
+  /**
+   * 前景阈值：传数字时固定使用；缺省走自适应（Otsu），
+   * 结果夹在 [48, 200]，直方图退化时回退 `DEFAULT_MASK_THRESHOLD`。
+   */
   threshold?: number;
+  /** 关闭自适应阈值（仅当 `threshold` 未传时生效），显式传数字同样固定。 */
+  adaptiveThreshold?: boolean;
   /** ISO 时间，由调用方注入以便测试确定性。 */
   createdAt: string;
 }
@@ -164,13 +240,20 @@ export function maskFromModelOutput(input: MaskFromOutputInput): MaskFromOutputR
     throw new Error(`模型输出长度必须是 ${outputWidth * outputHeight}，实际为 ${output.length}`);
   }
 
-  const threshold = input.threshold ?? DEFAULT_MASK_THRESHOLD;
+  const normalized = normalizeModelOutput(output);
+  const data = resizeGrayBilinear(normalized, outputWidth, outputHeight, imageWidth, imageHeight);
+
+  let threshold: number;
+  if (input.threshold !== undefined) {
+    threshold = input.threshold;
+  } else if (input.adaptiveThreshold === false) {
+    threshold = DEFAULT_MASK_THRESHOLD;
+  } else {
+    threshold = adaptiveMaskThreshold(data);
+  }
   if (!Number.isFinite(threshold) || threshold < 0 || threshold > 255) {
     throw new Error(`threshold 必须在 0–255 之间，实际为 ${String(threshold)}`);
   }
-
-  const normalized = normalizeModelOutput(output);
-  const data = resizeGrayBilinear(normalized, outputWidth, outputHeight, imageWidth, imageHeight);
 
   let foregroundPixels = 0;
   let confidenceSum = 0;

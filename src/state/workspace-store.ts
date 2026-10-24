@@ -37,6 +37,12 @@ import type { SampledGridResult } from "../features/image-import/sample-bitmap";
 import { clampCrop } from "../features/image-crop/crop-math";
 import type { CropAspectMode, CropRect, FitMode } from "../features/image-crop/crop-math";
 import type { CompositionParams, SubjectCandidate } from "../core/subject";
+import {
+  DEFAULT_PALETTE_KEY,
+  PALETTES,
+  isPaletteKey,
+  type PaletteKey,
+} from "../features/palette-panel/locked-palette";
 import type { AspectPreset, PositionPreset } from "../features/composition-workbench/layout";
 import { createEmptyCandidate } from "../features/subject-panel/brush";
 import {
@@ -113,6 +119,8 @@ interface WorkspaceState {
   maxColors: number;
   dithering: DitheringMode;
   colorMetric: ColorMetricName;
+  /** 当前生成用色卡；决定色号体系与豆子规格（2.6mm/5mm）。 */
+  paletteId: PaletteKey;
 
   sample: SampledGridResult | null;
   draft: BeadPattern | null;
@@ -135,6 +143,8 @@ interface WorkspaceState {
   compositionPosition: PositionPreset;
   compositionBackgroundImage: RgbaImage | null;
   manualBoxHint: boolean;
+  /** S2 · 分割模型 id；null = 清单默认（默认即高精度模型）。 */
+  segmentationModelId: string | null;
   editTool: PatternEditTool;
   paintColorIndex: number;
   undoStack: EditCommand[];
@@ -167,6 +177,7 @@ interface WorkspaceState {
   setBackgroundHex: (hex: string) => void;
   setMode: (mode: ImageMode) => void;
   setMaxColors: (maxColors: number) => void;
+  setPaletteId: (paletteId: PaletteKey) => void;
   setDithering: (dithering: DitheringMode) => void;
   setColorMetric: (metric: ColorMetricName) => void;
   applySample: (sample: SampledGridResult, draft: BeadPattern) => void;
@@ -188,6 +199,7 @@ interface WorkspaceState {
   setSubjectError: (error: SubjectErrorState) => void;
   setSubjectCandidates: (candidates: SubjectCandidate[]) => void;
   selectSubject: (id: string) => void;
+  setSegmentationModelId: (modelId: string | null) => void;
   patchSelectedCandidate: (candidate: SubjectCandidate) => void;
   ensurePaintCandidate: () => void;
   resetSubject: () => void;
@@ -323,9 +335,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   alphaPolicy: "empty",
   backgroundHex: "#FFFFFF",
   mode: "photo",
-  maxColors: 24,
-  dithering: "none",
-  colorMetric: "ciede2000",
+    maxColors: 24,
+    dithering: "none",
+    colorMetric: "ciede2000",
+    paletteId: DEFAULT_PALETTE_KEY,
 
   sample: null,
   draft: null,
@@ -437,6 +450,20 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       diagnostic: null,
       stats: null,
       generation: IDLE_GENERATION,
+    }),
+
+  setPaletteId: (paletteId) =>
+    set((state) => {
+      if (!isPaletteKey(paletteId) || paletteId === state.paletteId) {
+        return {};
+      }
+      const paletteSize = PALETTES[paletteId].definition.colors.length;
+      return {
+        paletteId,
+        // 旧上限可能超过新色卡色数；切换即收紧。草稿/图纸携带旧色卡，一并清空。
+        maxColors: Math.min(state.maxColors, paletteSize),
+        ...clearOutput(),
+      };
     }),
 
   setDithering: (dithering) =>
@@ -589,6 +616,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }),
 
   selectSubject: (selectedSubjectId) => set({ selectedSubjectId }),
+
+  setSegmentationModelId: (segmentationModelId) => set({ segmentationModelId }),
 
   patchSelectedCandidate: (candidate) =>
     set({

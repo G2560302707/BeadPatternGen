@@ -13,8 +13,6 @@ export default tseslint.config(
       "dist",
       "node_modules",
       "public/ort",
-      "拆解文档",
-      ".workbuddy",
       "tests/e2e",
       "playwright.config.ts",
     ],

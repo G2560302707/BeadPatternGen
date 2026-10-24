@@ -4,14 +4,15 @@
 
 ## 功能特性
 
-- 🎨 **真实色卡匹配** — 内置 Artkal S 色卡（数据来自 [maxcleme/beadcolors](https://github.com/maxcleme/beadcolors)，按 commit 锁定）；颜色科学内核实现 sRGB → Lab → Oklab 转换，用 CIEDE2000 色差公式做最近邻匹配。
+- 🎨 **真实色卡匹配** — 内置市面主流双色卡，可切换：MARD 221（2.6mm 小豆行业通用色号，默认；数据来自 [HansBug/pindou-color-data](https://github.com/HansBug/pindou-color-data)，MIT）与 Artkal S 178 色（5mm 大豆；数据来自 [maxcleme/beadcolors](https://github.com/maxcleme/beadcolors)，MIT）。颜色科学内核实现 sRGB → Lab → Oklab 转换，用 CIEDE2000 色差公式做最近邻匹配。
 - 🖼️ **图片导入与裁剪** — 面积采样、裁剪预览，透明图片支持「保留透明」与「透明转纯色」两种策略。
 - 🧭 **四模式生成策略** — `photo`（照片/人物）、`anime`（二次元，强制无抖动保描边）、`logo`（文字/几何边缘）、`landscape`（大面积渐变），每种模式围绕「边缘保护 vs 孤立点修复」的目标函数给出不同的保守程度。
 - 🔀 **确定性抖动** — Floyd–Steinberg，同输入永远同输出。
 - 📊 **质量诊断** — 孤立豆、碎片、细线、高色差格自动检测，生成可读报告。
 - ✂️ **主体识别与构图**（二期）— 浏览器端运行 u2netp 分割模型（onnxruntime-web，WASM / WebGPU 自动回退），抠出主体后按占比 / 边距做构图合成，支持透明 / 纯色 / 图片背景。
 - 👁️ **只读预览** — 缩放、平移、网格、原图对照。
-- 📤 **多格式导出** — PNG（格尺寸 8/16/24/32）、分页 PDF（A4 / A3 / Letter，含切片拼版数学与末端色号清单）、CSV 用量统计（UTF-8 BOM，Excel 直开）、JSON 工程文件。
+- 📤 **多格式导出** — 分享图纸 PNG（仿市面社交卡片版式：信息栏 / 彩色格图纸 / 用量图例 / 原图与烫后效果对比）、工程 PNG（格尺寸 8/16/24/32）、分页 PDF（A4 / A3 / Letter，含切片拼版数学与末端色号清单）、CSV 用量统计（UTF-8 BOM，Excel 直开）、JSON 工程文件。
+- 📏 **市售板子规格** — 5mm 标准板（29×29）与 2.6mm 小豆板（26×26）预设一键套用，自动换算拼板数与成品厘米尺寸。
 - 💾 **本地保存** — IndexedDB 三仓存储（工程 / 图纸 / 缩略图），刷新后无原图也能恢复只读图纸；配额 80% 预警。
 - 🔒 **隐私优先** — 去掉一切 CDN 与外站字体，Playwright E2E 验证「外站请求数为零」。
 
@@ -59,13 +60,8 @@ src/
 └── workers/      # 生成 Worker 与分割 Worker
 ```
 
-## 文档
-
-- 技术规格与实施计划见 [`docs/`](docs/)（`TECHNICAL_SPEC.md`、`IMPLEMENTATION_STATUS.md`、`DEPENDENCY_DECISIONS.md`、`SEGMENTATION.md` 等）
-- 逐阶段拆解文档见 [`拆解文档/`](拆解文档/)（S01–S22 每阶段的目标、约束与验收标准）
-
 ## 许可
 
 [MIT](LICENSE)
 
-色卡数据来自 [maxcleme/beadcolors](https://github.com/maxcleme/beadcolors)，其许可与来源说明见 `src/core/palette/NOTICE-maxcleme-beadcolors.txt`；分割模型 u2netp 遵循 Apache-2.0。模型与 onnxruntime wasm 资源均不随仓库分发，按需下载。
+Artkal S 色卡数据来自 [maxcleme/beadcolors](https://github.com/maxcleme/beadcolors)（`src/core/palette/NOTICE-maxcleme-beadcolors.txt`），MARD 221 色卡数据来自 [HansBug/pindou-color-data](https://github.com/HansBug/pindou-color-data)（`src/core/palette/NOTICE-hansbug-pindou-color-data.txt`），均为社区测量值而非品牌官方数值；分割模型 u2netp 遵循 Apache-2.0。模型与 onnxruntime wasm 资源均不随仓库分发，按需下载。

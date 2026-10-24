@@ -59,6 +59,7 @@ export function PatternBoard({ pattern }: PatternBoardProps) {
   const baseCells = useWorkspaceStore((state) => state.baseCells);
   const refineVisible = useWorkspaceStore((state) => state.refineVisible);
   const setEditTool = useWorkspaceStore((state) => state.setEditTool);
+  const setHighlightedColorIndex = useWorkspaceStore((state) => state.setHighlightedColorIndex);
   const stampPatternCell = useWorkspaceStore((state) => state.stampPatternCell);
   const commitStroke = useWorkspaceStore((state) => state.commitStroke);
   const executeCommand = useWorkspaceStore((state) => state.executeCommand);
@@ -74,11 +75,13 @@ export function PatternBoard({ pattern }: PatternBoardProps) {
   const pendingRef = useRef(new Map<number, { index: number; from: number; to: number }>());
   const selectStartRef = useRef<{ x: number; y: number } | null>(null);
   const lassoRef = useRef<Array<{ x: number; y: number }>>([]);
+  const lastMoveIndexRef = useRef<number | null>(null);
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const patternRef = useRef<HTMLCanvasElement>(null);
   const originalRef = useRef<HTMLCanvasElement>(null);
   const viewRef = useRef<ViewTransform>(identityView());
+  const fitKeyRef = useRef<string | null>(null);
   const spaceRef = useRef(false);
   const dragRef = useRef<{ x: number; y: number } | null>(null);
   const redrawRef = useRef<() => void>(() => undefined);
@@ -164,6 +167,7 @@ export function PatternBoard({ pattern }: PatternBoardProps) {
     };
     redrawRef.current = redraw;
     redraw();
+    // compare 只驱动对照层的 CSS clipPath，不需要重绘画布，故不列入依赖。
   }, [
     pattern,
     image,
@@ -173,33 +177,45 @@ export function PatternBoard({ pattern }: PatternBoardProps) {
     showCodes,
     highlightColorIndex,
     highlightList,
-    compare,
     selection,
   ]);
 
+  // 仅在图纸真正更换（身份 / 尺寸变化）时重新适配视图；编辑只改引用不改 key，
+  // 否则画一笔、撤销一次都会把放大后的视图弹回适应窗口。
   useEffect(() => {
     const wrap = wrapRef.current;
-    if (wrap) {
+    if (!wrap) return;
+    const fitKey = `${pattern.id}:${pattern.width}x${pattern.height}`;
+    if (fitKeyRef.current !== fitKey) {
+      fitKeyRef.current = fitKey;
       viewRef.current = fitView(pattern.width, pattern.height, {
         width: wrap.clientWidth,
         height: wrap.clientHeight,
       });
       redrawRef.current();
     }
-    if (!wrap || typeof ResizeObserver === "undefined") return;
+    if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(() => redrawRef.current());
     observer.observe(wrap);
     return () => observer.disconnect();
-  }, [pattern]);
+  }, [pattern.id, pattern.width, pattern.height]);
 
   useEffect(() => {
     const wrap = wrapRef.current;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.code === "Space") {
-        spaceRef.current = true;
-        setPanning(true);
-        event.preventDefault();
+      if (event.code !== "Space") return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target?.isContentEditable
+      ) {
+        return;
       }
+      spaceRef.current = true;
+      setPanning(true);
+      event.preventDefault();
     };
     const onKeyUp = (event: KeyboardEvent) => {
       if (event.code === "Space") {
@@ -228,7 +244,7 @@ export function PatternBoard({ pattern }: PatternBoardProps) {
       window.removeEventListener("keyup", onKeyUp);
       wrap?.removeEventListener("wheel", onWheel);
     };
-  }, [pattern]);
+  }, []);
 
   return (
     <div className="pattern-board">
@@ -319,6 +335,18 @@ export function PatternBoard({ pattern }: PatternBoardProps) {
           色号
         </label>
         <span className="pattern-toolbar__scale">{Math.round(scaleLabel * 10) / 10}×</span>
+        {(() => {
+          const paintColor = pattern.palette[paintColorIndex];
+          return paintColor ? (
+            <span
+              className="pattern-toolbar__paint"
+              title={`当前画笔 / 吸管颜色：${paintColor.code} ${paintColor.name ?? ""}`}
+            >
+              <span className="pattern-toolbar__paint-swatch" style={{ background: paintColor.hex }} />
+              <code>{paintColor.code}</code>
+            </span>
+          ) : null;
+        })()}
         {(
           [
             ["pan", "平移"],
@@ -614,9 +642,14 @@ export function PatternBoard({ pattern }: PatternBoardProps) {
           );
           if (!hit) return;
           event.currentTarget.setPointerCapture(event.pointerId);
+          lastMoveIndexRef.current = hit.index;
           if (editTool === "eyedrop") {
             const current = pattern.cells[hit.index] ?? EMPTY_CELL;
-            if (current !== EMPTY_CELL) setPaintColorIndex(current);
+            if (current !== EMPTY_CELL) {
+              setPaintColorIndex(current);
+              // 吸色同时高亮同色格子：立刻能看到吸到了什么、用在了哪里。
+              setHighlightedColorIndex(current);
+            }
             return;
           }
           if (editTool === "select-rect") {
@@ -662,6 +695,9 @@ export function PatternBoard({ pattern }: PatternBoardProps) {
             pattern.height,
           );
           if (!hit) return;
+          // 指针还在同一格内：框选/套索/笔迹都没有新状态，跳过整段重绘。
+          if (lastMoveIndexRef.current === hit.index) return;
+          lastMoveIndexRef.current = hit.index;
           if (editTool === "select-rect" && selectStartRef.current) {
             setSelection(
               rectIndices(
@@ -690,6 +726,7 @@ export function PatternBoard({ pattern }: PatternBoardProps) {
         }}
         onPointerUp={() => {
           dragRef.current = null;
+          lastMoveIndexRef.current = null;
           if (editTool === "select-rect") selectStartRef.current = null;
           if (editTool === "select-lasso") {
             strokeRef.current = false;

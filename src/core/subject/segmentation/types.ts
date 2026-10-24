@@ -54,6 +54,8 @@ export interface SegmentationModelSpec {
 export interface SegmentationModelManifest {
   /** Cache Storage 的桶名；升级模型清单时一并递增。 */
   cacheName: string;
+  /** 默认模型 id（必须存在于 models）；缺省取第一项。 */
+  defaultModelId?: string;
   models: SegmentationModelSpec[];
 }
 
@@ -84,6 +86,11 @@ export interface SegmentationRunOptions {
   minForegroundRatio?: number;
   /** 前景置信度均值的下限（0–1）；低于它同样视为没有主体。默认 0。 */
   minConfidence?: number;
+  /**
+   * bbox 裁剪二次推理：主体 bbox 显著小于全图时，裁剪区重跑一次拿回边界分辨率。
+   * 默认开启；测试或对照实验可传 false 关闭。
+   */
+  refineCrop?: boolean;
   /** 候选 id 生成器；测试可注入确定性实现。 */
   candidateId?: () => string;
   /** ISO 时间生成器；测试可注入固定时间。 */

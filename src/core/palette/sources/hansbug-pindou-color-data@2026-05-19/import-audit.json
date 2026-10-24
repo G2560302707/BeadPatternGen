@@ -1,0 +1,23 @@
+{
+  "sourceRepo": "https://github.com/HansBug/pindou-color-data",
+  "sourceDirectory": "mard-221-alfonse-doudou",
+  "sourceFile": "colors.json",
+  "sourceGeneratedAt": "2026-05-19",
+  "license": "MIT (Copyright (c) 2026 HansBug)",
+  "importedAt": "2026-10-24",
+  "rowsInSource": 221,
+  "rowsImported": 221,
+  "rowsExcluded": 0,
+  "exclusionRules": [],
+  "transformRules": [
+    "name := code (upstream dataset carries no color names; market charts reference MARD colors by code)",
+    "hex passthrough, uppercase verified",
+    "group/source fields dropped (flat single palette)"
+  ],
+  "integrityChecks": {
+    "uniqueCodes": true,
+    "hexMatchesRgb": true,
+    "groups": { "A": 26, "B": 32, "C": 29, "D": 26, "E": 24, "F": 25, "G": 21, "H": 23, "M": 15 },
+    "crossValidation": "spot-checked against pixel-beads.com MARD chart (e.g. A1 #FAF5CD, C12 #F2A0A0-series agreement); series counts match exactly"
+  }
+}

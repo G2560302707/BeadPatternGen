@@ -98,6 +98,9 @@ async function runDetection(
       ...(USE_MOCK_DETECTION
         ? { segment: createMockSegmentationRunner(image.width, image.height) }
         : {}),
+      ...(useWorkspaceStore.getState().segmentationModelId
+        ? { modelId: useWorkspaceStore.getState().segmentationModelId as string }
+        : {}),
     });
     landResult(taskId, result);
   } catch (error) {

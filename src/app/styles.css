@@ -38,7 +38,10 @@ body {
 }
 
 .workbench {
-  min-height: 100vh;
+  /* 固定为视口高：三栏各自内部滚动。min-height 会被最长的左列撑爆，
+     导致画布列被拉高、图纸 fit 到视口外的位置。 */
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -113,6 +116,7 @@ body {
   flex: 1;
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr) 280px;
+  grid-template-rows: minmax(0, 1fr);
   min-height: 0;
 }
 
@@ -135,7 +139,9 @@ body {
 
 .canvas-board {
   padding: 18px;
-  min-height: 360px;
+  /* 高度交给 grid 行分配；视觉下限由内部 .pegboard / .pattern-stage 的 min-height 兜底。 */
+  min-height: 0;
+  overflow: hidden;
 }
 
 .pegboard {
@@ -603,6 +609,24 @@ body {
   font-family: ui-monospace, Consolas, "Courier New", monospace;
 }
 
+.pattern-toolbar__paint {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.pattern-toolbar__paint-swatch {
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+.pattern-toolbar__paint code {
+  font-size: 11px;
+}
+
 .pattern-stage {
   position: relative;
   flex: 1;
@@ -805,12 +829,21 @@ body {
 }
 
 @media (max-width: 960px) {
+  .workbench {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
   .workbench__body {
     grid-template-columns: 1fr;
+    grid-template-rows: none;
   }
   .panel--right {
     border-left: 0;
     border-top: 1px solid var(--line);
+  }
+  .canvas-board {
+    overflow: visible;
   }
 }
 

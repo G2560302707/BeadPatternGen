@@ -6,7 +6,7 @@ import {
   type SubjectMask,
 } from "../../core/subject";
 
-export type BrushMode = "add" | "erase" | "box";
+export type BrushMode = "add" | "erase" | "box" | "reseg";
 
 export const BRUSH_RADIUS_PRESETS = [4, 8, 16, 32] as const;
 

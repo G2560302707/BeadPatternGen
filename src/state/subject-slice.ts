@@ -41,6 +41,8 @@ export interface SubjectSliceState {
   subjectCandidates: SubjectCandidate[];
   selectedSubjectId: string | null;
   manualBoxHint: boolean;
+  /** S2 · 分割模型 id；null = 清单默认（当前默认即高精度模型）。 */
+  segmentationModelId: string | null;
 }
 
 /** 构图切片（参数可序列化；合成像素不进入 state）。 */
@@ -68,6 +70,7 @@ export function createSubjectSlice(): SubjectSliceState {
     subjectCandidates: [],
     selectedSubjectId: null,
     manualBoxHint: false,
+    segmentationModelId: null,
   };
 }
 

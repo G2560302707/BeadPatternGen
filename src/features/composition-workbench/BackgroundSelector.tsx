@@ -3,12 +3,13 @@ import { useWorkspaceStore } from "../../state/workspace-store";
 import type { RgbaImage } from "../../core/composition";
 import { decodeImageFile } from "../image-import/decode-image";
 import {
-  BACKGROUND_PRESET_CODES,
   backgroundPatch,
   backgroundPresets,
   DEFAULT_SOLID_HEX,
   normalizeHex,
 } from "./background-presets";
+
+const PRESET_CODE_LABELS = ["S01", "S05", "S08", "S11", "S13", "S14"];
 
 export function BackgroundSelector() {
   const params = useWorkspaceStore((state) => state.compositionParams);
@@ -17,7 +18,8 @@ export function BackgroundSelector() {
     (state) => state.setCompositionBackgroundImage,
   );
   const fileRef = useRef<HTMLInputElement>(null);
-  const presets = backgroundPresets();
+  const paletteId = useWorkspaceStore((state) => state.paletteId);
+  const presets = backgroundPresets(paletteId);
   const solidHex =
     params.backgroundType === "solid"
       ? (params.backgroundValue ?? DEFAULT_SOLID_HEX)
@@ -149,7 +151,7 @@ export function BackgroundSelector() {
       ) : null}
 
       <p className="hint">
-        锁定主体后切换背景，不会改占比与位置。常用色来自 {BACKGROUND_PRESET_CODES.join(" / ")}。
+        锁定主体后切换背景，不会改占比与位置。常用色来自 {PRESET_CODE_LABELS.join(" / ")} 同角色色。
       </p>
     </section>
   );

@@ -1,6 +1,11 @@
 import { EmptyState } from "../../components/EmptyState";
 import { QualityReport } from "../quality-report/QualityReport";
-import { lockedPalette } from "./locked-palette";
+import {
+  paletteColors,
+  paletteColorsByDefinitionId,
+  paletteEntry,
+  paletteEntryByDefinitionId,
+} from "./locked-palette";
 import { useWorkspaceStore } from "../../state/workspace-store";
 
 export function PalettePanel() {
@@ -11,7 +16,7 @@ export function PalettePanel() {
   const highlightedColorIndex = useWorkspaceStore((s) => s.highlightedColorIndex);
   const setHighlightedColorIndex = useWorkspaceStore((s) => s.setHighlightedColorIndex);
   const setPaintColorIndex = useWorkspaceStore((s) => s.setPaintColorIndex);
-  const setEditTool = useWorkspaceStore((s) => s.setEditTool);
+  const storePaletteId = useWorkspaceStore((s) => s.paletteId);
 
   const used = stats?.byColor.filter((row) => row.count > 0) ?? [];
 
@@ -23,7 +28,7 @@ export function PalettePanel() {
       {pattern && stats ? (
         <div className="palette-usage" data-testid="palette-stats">
           <p className="palette-list__meta">
-            {stats.beadCount} 颗 · {stats.colorCount} 色 · 点击色号高亮，并选为画笔颜色
+            {stats.beadCount} 颗 · {stats.colorCount} 色 · 点击色号选为画笔颜色并高亮
           </p>
           <ul>
             {used.map((row) => {
@@ -37,7 +42,6 @@ export function PalettePanel() {
                     onClick={() => {
                       if (paletteIndex >= 0) {
                         setPaintColorIndex(paletteIndex);
-                        setEditTool("paint");
                       }
                       setHighlightedColorIndex(active || paletteIndex < 0 ? null : paletteIndex);
                     }}
@@ -66,19 +70,32 @@ export function PalettePanel() {
       </button>
       {paletteOpen ? (
         <div className="palette-list">
-          <p className="palette-list__meta">
-            {lockedPalette.brand} · {lockedPalette.series} · {lockedPalette.version} ·{" "}
-            {lockedPalette.colors.length} 色
-          </p>
-          <ul>
-            {lockedPalette.colors.map((color) => (
-              <li key={color.code}>
-                <span className="swatch" style={{ background: color.hex }} />
-                <code>{color.code}</code>
-                <span>{color.name}</span>
-              </li>
-            ))}
-          </ul>
+          {(() => {
+            // 图纸自带色卡按定义 id 反查；无图纸时展示当前选中的生成色卡。
+            const locked = pattern
+              ? paletteEntryByDefinitionId(pattern.paletteId)
+              : paletteEntry(storePaletteId);
+            const lockedColors = pattern
+              ? paletteColorsByDefinitionId(pattern.paletteId)
+              : paletteColors(storePaletteId);
+            return (
+              <>
+                <p className="palette-list__meta">
+                  {locked.label} · {locked.definition.brand} · {locked.definition.series} ·{" "}
+                  {locked.definition.version} · {lockedColors.length} 色
+                </p>
+                <ul>
+                  {lockedColors.map((color) => (
+                    <li key={color.code}>
+                      <span className="swatch" style={{ background: color.hex }} />
+                      <code>{color.code}</code>
+                      <span>{color.name}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            );
+          })()}
         </div>
       ) : null}
     </aside>

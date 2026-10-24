@@ -1,6 +1,7 @@
 import { getModeProfile } from "../../core/modes";
 import type { ColorMetricName, DitheringMode, ImageMode } from "../../core/pattern";
 import { LoadingNotice } from "../../components/LoadingNotice";
+import { paletteDefinition } from "../palette-panel/locked-palette";
 import { cancelGeneration, startGeneration } from "../../state/generation";
 import { useWorkspaceStore } from "../../state/workspace-store";
 
@@ -22,11 +23,13 @@ export function GenerateControls() {
   const setMaxColors = useWorkspaceStore((state) => state.setMaxColors);
   const setDithering = useWorkspaceStore((state) => state.setDithering);
   const setColorMetric = useWorkspaceStore((state) => state.setColorMetric);
+  const paletteId = useWorkspaceStore((state) => state.paletteId);
 
   if (!sample) return null;
 
   const profile = getModeProfile(mode);
   const running = generation.status === "running";
+  const paletteSize = paletteDefinition(paletteId).colors.length;
 
   return (
     <section className="control-section">
@@ -52,7 +55,7 @@ export function GenerateControls() {
           id="max-colors"
           type="number"
           min={1}
-          max={178}
+          max={paletteSize}
           step={1}
           value={maxColors}
           disabled={running}

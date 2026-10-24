@@ -38,6 +38,14 @@ function segmentationClient(): SegmentationClient {
 const runSegmentation: SegmentationRunner = (input, callbacks) =>
   segmentationClient().segment(input, callbacks);
 
+/** S3b · 区域重识别等高级用法直接复用单例 Worker 客户端。 */
+export function segmentInBrowser(
+  input: Parameters<SegmentationRunner>[0],
+  callbacks?: Parameters<SegmentationRunner>[1],
+): Promise<SubjectCandidate[]> {
+  return segmentationClient().segment(input, callbacks);
+}
+
 export interface DetectSubjectsInBrowserOptions {
   /** 原图 id（UI 侧稳定值），主体记录以它为 `sourceImageId`。 */
   sourceImageId: string;

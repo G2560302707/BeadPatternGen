@@ -11,9 +11,6 @@
 import manifestJson from "./model-manifest.json";
 import type { SegmentationModelManifest, SegmentationModelSpec } from "./types";
 
-/** 默认模型：4.4 MB 的 u2netp，移动端与低配机器也能跑。 */
-export const DEFAULT_SEGMENTATION_MODEL_ID = "u2netp";
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -96,7 +93,18 @@ function parseManifest(value: unknown): SegmentationModelManifest {
   const models = value.models.map(parseModel);
   const ids = new Set(models.map((model) => model.id));
   if (ids.size !== models.length) throw new Error("模型清单存在重复的模型 id");
-  return { cacheName: value.cacheName as string, models };
+  // 默认模型必须指向清单中的某一项；缺省取第一项。
+  const fallback = models[0]?.id as string;
+  if (value.defaultModelId !== undefined) {
+    if (!isNonEmptyString(value.defaultModelId)) {
+      throw new Error("模型清单 defaultModelId 必须是非空字符串");
+    }
+    if (!ids.has(value.defaultModelId)) {
+      throw new Error(`模型清单 defaultModelId ${value.defaultModelId} 不在 models 中`);
+    }
+  }
+  const defaultModelId = (value.defaultModelId as string | undefined) ?? fallback;
+  return { cacheName: value.cacheName as string, defaultModelId, models };
 }
 
 /** 已校验并冻结的模型清单。导入时立即校验，坏清单在启动阶段就暴露。 */
@@ -106,6 +114,10 @@ export const SEGMENTATION_MODEL_MANIFEST: Readonly<SegmentationModelManifest> = 
 
 /** Cache Storage 桶名。 */
 export const SEGMENTATION_MODEL_CACHE_NAME = SEGMENTATION_MODEL_MANIFEST.cacheName;
+
+/** 默认模型：清单 `defaultModelId`（当前为高精度模型，见 model-manifest.json）。 */
+export const DEFAULT_SEGMENTATION_MODEL_ID =
+  SEGMENTATION_MODEL_MANIFEST.defaultModelId ?? (SEGMENTATION_MODEL_MANIFEST.models[0]?.id ?? "u2netp");
 
 /** 按 id 取模型；不传 id 时返回默认模型。未知 id 抛错，由调用方转成 `E_MODEL_UNSUPPORTED`。 */
 export function getSegmentationModelSpec(modelId?: string): SegmentationModelSpec {

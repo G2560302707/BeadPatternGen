@@ -9,7 +9,7 @@ import {
   composePreviewInBrowser,
   persistSubjectMaskInBrowser,
 } from "../../workers/subject-service";
-import { lockedPalette, lockedPaletteColors } from "../palette-panel/locked-palette";
+import { paletteColors, paletteDefinition } from "../palette-panel/locked-palette";
 import { sampleBitmapToGrid } from "../image-import/sample-bitmap";
 
 function pixelsFromBitmap(bitmap: ImageBitmap): ImageData {
@@ -110,10 +110,10 @@ export async function confirmComposition(): Promise<void> {
       title: image.fileName,
       width: store.gridW,
       height: store.gridH,
-      palette: lockedPaletteColors(),
+      palette: paletteColors(store.paletteId),
       mode: store.mode,
-      paletteId: lockedPalette.paletteId,
-      paletteVersion: lockedPalette.version,
+      paletteId: paletteDefinition(store.paletteId).paletteId,
+      paletteVersion: paletteDefinition(store.paletteId).version,
       settings,
       source: {
         originalWidth: composed.width,

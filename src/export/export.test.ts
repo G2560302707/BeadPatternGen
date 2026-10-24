@@ -151,7 +151,7 @@ describe("PDF", () => {
 
   it("balances leftover strips instead of a full page plus a sliver", async () => {
     expect(balancedCapacity(70, 65, 2)).toBe(36);
-    const planned = planMakeLayout(200, 80, "a4", 2);
+    const planned = planMakeLayout(200, 80, "a4", 2, false);
     expect(planned.slices.length).toBeGreaterThan(1);
     const cols = planned.slices.map((slice) => slice.cols);
     const minCols = Math.min(...cols);
@@ -166,6 +166,46 @@ describe("PDF", () => {
       }
     }
     expect(covered.size).toBe(200 * 80);
+  });
+
+  it("fits the whole chart on one page with a fractional cell when fitSinglePage is on", async () => {
+    // 200 宽超过 A4 整档容量（5pt 时 98 列），旧行为是切 3 页；单页模式应整图一页。
+    const pattern = fixture(200, 80);
+    const planned = planMakeLayout(pattern.width, pattern.height, "a4", 2, true);
+    expect(planned.slices).toHaveLength(1);
+    expect(planned.colPages).toBe(1);
+    expect(planned.rowPages).toBe(1);
+    expect(planned.slices[0]?.cols).toBe(pattern.width);
+    expect(planned.slices[0]?.rows).toBe(pattern.height);
+    expect(planned.cellPt).toBeLessThan(5);
+    expect(Number.isInteger(planned.cellPt)).toBe(false);
+
+    const result = await exportPdf(pattern, {
+      paper: "a4",
+      mode: "make",
+      overlap: 2,
+      showCodes: true,
+      fitSinglePage: true,
+    });
+    expect(result.patternPageCount).toBe(1);
+    expect(result.cellPt).toBe(planned.cellPt);
+    expect(result.cellsDrawnPerPage[0]).toBe(pattern.width * pattern.height);
+    const loaded = await PDFDocument.load(result.bytes);
+    expect(loaded.getPageCount()).toBe(result.patternPageCount + result.legendPageCount);
+  });
+
+  it("omits legend pages when includeLegend is false", async () => {
+    const pattern = fixture(20, 12);
+    const result = await exportPdf(pattern, {
+      paper: "a4",
+      mode: "make",
+      overlap: 2,
+      showCodes: false,
+      includeLegend: false,
+    });
+    expect(result.legendPageCount).toBe(0);
+    const loaded = await PDFDocument.load(result.bytes);
+    expect(loaded.getPageCount()).toBe(result.patternPageCount);
   });
 });
 

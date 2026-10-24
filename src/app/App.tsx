@@ -10,7 +10,7 @@ import { installMockE2eHooks } from "../features/subject-detect/e2e-hooks";
 import { disposeGeneration } from "../state/generation";
 import { defaultDraftRepository } from "../storage/draft-repository";
 import { useWorkspaceStore } from "../state/workspace-store";
-import lockedPalette from "../core/palette/fixtures/artkal-s@beadcolors-f97ff428.json";
+import { paletteEntry } from "../features/palette-panel/locked-palette";
 
 export function App() {
   const error = useWorkspaceStore((s) => s.error);
@@ -24,6 +24,7 @@ export function App() {
   const saveStatus = useWorkspaceStore((s) => s.saveStatus);
   const savedAt = useWorkspaceStore((s) => s.savedAt);
   const workbenchMode = useWorkspaceStore((s) => s.workbenchMode);
+  const paletteId = useWorkspaceStore((s) => s.paletteId);
 
   useEffect(() => {
     const uninstall = installMockE2eHooks();
@@ -68,7 +69,8 @@ export function App() {
           </div>
         </div>
         <p className="topbar__chip">
-          色卡 {lockedPalette.paletteId} · {lockedPalette.colors.length} 色已锁定
+          色卡 {paletteEntry(paletteId).definition.paletteId} ·{" "}
+          {paletteEntry(paletteId).definition.colors.length} 色 · {paletteEntry(paletteId).beadSize}
         </p>
       </header>
       {error ? (

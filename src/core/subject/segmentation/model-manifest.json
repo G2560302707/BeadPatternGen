@@ -1,5 +1,6 @@
 {
   "cacheName": "bead-pattern-segmentation-models-v1",
+  "defaultModelId": "isnet-general-use",
   "models": [
     {
       "id": "u2netp",
@@ -15,6 +16,37 @@
       "inputHeight": 320,
       "mean": [0.485, 0.456, 0.406],
       "std": [0.229, 0.224, 0.225],
+      "outputIndex": 0
+    },
+    {
+      "id": "silueta",
+      "version": "rembg-0.0.0",
+      "license": "Apache-2.0",
+      "upstream": "https://github.com/xuebinqin/U-2-Net",
+      "sourceUrl": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/silueta.onnx",
+      "fileName": "silueta.onnx",
+      "sha256": "75da6c8d2f8096ec743d071951be73b4a8bc7b3e51d9a6625d63644f90ffeedb",
+      "byteLength": 44173029,
+      "inputWidth": 320,
+      "inputHeight": 320,
+      "mean": [0.485, 0.456, 0.406],
+      "std": [0.229, 0.224, 0.225],
+      "outputIndex": 0
+    },
+    {
+      "id": "isnet-general-use",
+      "version": "rembg-0.0.0",
+      "license": "Apache-2.0",
+      "upstream": "https://github.com/xuebinqin/DIS",
+      "sourceUrl": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx",
+      "fileName": "isnet-general-use.onnx",
+      "sha256": "60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a",
+      "byteLength": 178648008,
+      "inputName": "input_image",
+      "inputWidth": 1024,
+      "inputHeight": 1024,
+      "mean": [0.5, 0.5, 0.5],
+      "std": [1, 1, 1],
       "outputIndex": 0
     }
   ]

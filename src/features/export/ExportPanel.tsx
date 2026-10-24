@@ -7,6 +7,7 @@ import {
   exportPdf,
   exportPng,
   exportProjectJson,
+  exportShareCardPng,
   planMakeLayout,
   type PaperSizeName,
   type PngCellSize,
@@ -17,13 +18,19 @@ import { useWorkspaceStore } from "../../state/workspace-store";
 export function ExportPanel() {
   const pattern = useWorkspaceStore((state) => state.pattern);
   const setError = useWorkspaceStore((state) => state.setError);
+  const image = useWorkspaceStore((state) => state.image);
   const [cellSize, setCellSize] = useState<PngCellSize>(16);
   const [paper, setPaper] = useState<PaperSizeName>("a4");
   const [overlap, setOverlap] = useState(2);
+  const [fitSinglePage, setFitSinglePage] = useState(true);
+  const [includeLegend, setIncludeLegend] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
   const [showLegend, setShowLegend] = useState(true);
   const [showCoords, setShowCoords] = useState(true);
   const [showCodes, setShowCodes] = useState(true);
+  const [shareScale, setShareScale] = useState<1 | 2>(1);
+  const [shareCompare, setShareCompare] = useState(true);
+  const [watermark, setWatermark] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
 
   if (!pattern) {
@@ -49,15 +56,20 @@ export function ExportPanel() {
     }
   };
 
-  const layout = planMakeLayout(pattern.width, pattern.height, paper, overlap);
+  const layout = planMakeLayout(pattern.width, pattern.height, paper, overlap, fitSinglePage);
   const pngCodes = showCodes && cellSize >= 16;
+  const singlePageLayout = fitSinglePage && layout.slices.length === 1 && !Number.isInteger(layout.cellPt);
+  const layoutHint = singlePageLayout
+    ? `制作版 PDF 整图缩放进 1 页 · 格点 ${layout.cellPt.toFixed(2)}pt（约 ${((layout.cellPt * 25.4) / 72).toFixed(1)}mm）· 矢量输出，放大不失真`
+    : `制作版 PDF ${layout.rowPages}×${layout.colPages} 页（共 ${layout.slices.length} 页切片），格点 ${layout.cellPt}pt`;
 
   return (
     <section className="control-section">
       <h3>导出</h3>
       <p className="hint">
-        颜色只读取当前图纸色卡，不会重新量化。制作版 PDF {layout.rowPages}×{layout.colPages} 页（共{" "}
-        {layout.slices.length} 页切片），格点 {layout.cellPt}pt。
+        颜色只读取当前图纸色卡，不会重新量化。{layoutHint}
+        {includeLegend ? "，另加色表页" : ""}
+        {singlePageLayout && layout.cellPt < 5 ? "。格子较小，建议改用 A3 或关闭单页缩放。" : "。"}
       </p>
       {layout.slices.length > PAGE_WARN_COUNT && paper !== "a3" ? (
         <p className="hint">页数较多，可改用 A3 减少分页。</p>
@@ -130,6 +142,85 @@ export function ExportPanel() {
           onChange={(event) => setOverlap(Number(event.target.value))}
         />
       </div>
+      <label title="超出单页容量时用小数格点把整图缩放进一页（矢量，不失真）；关闭则按重叠格切片分页">
+        <input
+          type="checkbox"
+          data-testid="pdf-fit-single-page"
+          checked={fitSinglePage}
+          onChange={(event) => setFitSinglePage(event.target.checked)}
+        />
+        整图缩放到单页
+      </label>
+      <label title="在图纸后追加颜色清单页（色号、数量）；不影响图纸本体">
+        <input
+          type="checkbox"
+          data-testid="pdf-include-legend"
+          checked={includeLegend}
+          onChange={(event) => setIncludeLegend(event.target.checked)}
+        />
+        包含色表页
+      </label>
+      <p className="hint">
+        分享图纸：仿市面社交卡片版式（信息栏 + 图纸 + 用量图例 + 原图/烫后对比）。
+        {image ? "" : "未导入图片时省略原图对比。"}
+      </p>
+      <div className="field">
+        <label htmlFor="share-scale">分享图清晰度</label>
+        <select
+          id="share-scale"
+          value={shareScale}
+          onChange={(event) => setShareScale(Number(event.target.value) as 1 | 2)}
+        >
+          <option value={1}>标准（宽 1242px）</option>
+          <option value={2}>高清 2x（宽 2484px）</option>
+        </select>
+      </div>
+      <label>
+        <input
+          type="checkbox"
+          checked={shareCompare}
+          onChange={(event) => setShareCompare(event.target.checked)}
+        />
+        底部原图 / 烫后对比
+      </label>
+      <div className="field field--inline">
+        <label htmlFor="share-watermark">水印</label>
+        <input
+          id="share-watermark"
+          type="text"
+          maxLength={24}
+          placeholder="可留空"
+          value={watermark}
+          onChange={(event) => setWatermark(event.target.value)}
+        />
+      </div>
+      <button
+        type="button"
+        className="btn btn--primary btn--block"
+        data-testid="export-share-card"
+        disabled={busy !== null}
+        onClick={() =>
+          void run("share", async () => {
+            const source =
+              shareCompare && image
+                ? { image: image.bitmap, width: image.width, height: image.height, crop: pattern.source.crop ?? null }
+                : null;
+            const bytes = await exportShareCardPng(pattern, {
+              scale: shareScale,
+              showCompare: shareCompare,
+              source,
+              watermark,
+            });
+            downloadBytes(
+              `${pattern.title || "pattern"}-share.png`,
+              bytes,
+              "image/png",
+            );
+          })
+        }
+      >
+        {busy === "share" ? "导出中…" : "导出分享图纸 PNG"}
+      </button>
       <button
         type="button"
         className="btn btn--block"
@@ -157,7 +248,14 @@ export function ExportPanel() {
         disabled={busy !== null}
         onClick={() =>
           void run("pdf-make", async () => {
-            const result = await exportPdf(pattern, { paper, mode: "make", overlap, showCodes });
+            const result = await exportPdf(pattern, {
+              paper,
+              mode: "make",
+              overlap,
+              showCodes,
+              fitSinglePage,
+              includeLegend,
+            });
             downloadBytes(
               `${pattern.title || "pattern"}-make.pdf`,
               result.bytes,

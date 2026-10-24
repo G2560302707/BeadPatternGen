@@ -15,5 +15,12 @@ export { exportCsv } from "./csv";
 export { exportProjectJson, parseProjectJson } from "./json";
 export { exportPdf, pdfPageCapacity, planMakeLayout, PAGE_WARN_COUNT } from "./pdf";
 export type { PaperSizeName, PdfExportOptions, PdfExportResult, PdfMode, MakeLayout } from "./pdf";
+export {
+  exportShareCardPng,
+  renderIronedPreview,
+  renderShareCard,
+  shareCardLayout,
+} from "./share-card";
+export type { ShareCardOptions, ShareCardSource, ShareCardLayout } from "./share-card";
 export { balancedCapacity, pageCountOnAxis, DEFAULT_CELL_PT, MIN_CELL_PT } from "./capacity";
 export { downloadBytes, downloadText } from "./download";

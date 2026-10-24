@@ -43,11 +43,17 @@ function paintMask(
         const sx = Math.min(mask.width - 1, Math.floor(x / display.scale));
         const sy = Math.min(mask.height - 1, Math.floor(y / display.scale));
         const alpha = mask.data[sy * mask.width + sx] ?? 0;
-        if (alpha <= mask.threshold) continue;
         const i = (y * display.width + x) * 4;
-        overlay.data[i] = Math.round((overlay.data[i] ?? 0) * 0.45 + 182 * 0.55);
-        overlay.data[i + 1] = Math.round((overlay.data[i + 1] ?? 0) * 0.45 + 25 * 0.55);
-        overlay.data[i + 2] = Math.round((overlay.data[i + 2] ?? 0) * 0.45 + 39 * 0.55);
+        if (alpha > mask.threshold) {
+          overlay.data[i] = Math.round((overlay.data[i] ?? 0) * 0.45 + 182 * 0.55);
+          overlay.data[i + 1] = Math.round((overlay.data[i + 1] ?? 0) * 0.45 + 25 * 0.55);
+          overlay.data[i + 2] = Math.round((overlay.data[i + 2] ?? 0) * 0.45 + 39 * 0.55);
+        } else if (alpha > 32) {
+          // 弱响应带（S3a）：模型不确定的区域，橙色轻染提示。
+          overlay.data[i] = Math.round((overlay.data[i] ?? 0) * 0.6 + 255 * 0.4);
+          overlay.data[i + 1] = Math.round((overlay.data[i + 1] ?? 0) * 0.6 + 165 * 0.4);
+          overlay.data[i + 2] = Math.round((overlay.data[i + 2] ?? 0) * 0.6);
+        }
       }
     }
     ctx.putImageData(overlay, 0, 0);
@@ -86,6 +92,7 @@ export function MaskCanvas({
   radius,
   enabled,
   onStrokeEnd,
+  onRegionResegment,
 }: {
   image: ImageSession;
   candidate: SubjectCandidate | null;
@@ -93,6 +100,11 @@ export function MaskCanvas({
   radius: number;
   enabled: boolean;
   onStrokeEnd: (previous: SubjectCandidate, data: Uint8ClampedArray) => void;
+  /** S3b · "区域重识别"模式拖出的框；未提供时按普通框选填充处理。 */
+  onRegionResegment?: (
+    previous: SubjectCandidate,
+    box: { x0: number; y0: number; x1: number; y1: number },
+  ) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const workingRef = useRef<Uint8ClampedArray | null>(null);
@@ -224,6 +236,10 @@ export function MaskCanvas({
         box.y1,
         255,
       );
+    }
+    if (mode === "reseg" && box && onRegionResegment) {
+      onRegionResegment(previous, box);
+      return;
     }
     onStrokeEnd(previous, working);
   };

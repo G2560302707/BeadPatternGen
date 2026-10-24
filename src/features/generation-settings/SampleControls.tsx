@@ -2,8 +2,9 @@ import { useState } from "react";
 import { LoadingNotice } from "../../components/LoadingNotice";
 import { MAX_GRID_HEIGHT, MAX_GRID_WIDTH, createDraftPattern } from "../../core/pattern";
 import type { GenerationSettings } from "../../core/pattern";
+import { BOARD_SPECS, boardCountLabel, finishedSizeLabel } from "../../core/board/presets";
 import { SamplingError } from "../../core/sampling";
-import { lockedPalette, lockedPaletteColors } from "../palette-panel/locked-palette";
+import { PALETTES, PALETTE_KEYS, paletteColors, paletteDefinition } from "../palette-panel/locked-palette";
 import { useWorkspaceStore } from "../../state/workspace-store";
 import { sampleBitmapToGrid } from "../image-import/sample-bitmap";
 
@@ -24,8 +25,13 @@ export function SampleControls() {
   const colorMetric = useWorkspaceStore((state) => state.colorMetric);
   const applySample = useWorkspaceStore((state) => state.applySample);
   const setError = useWorkspaceStore((state) => state.setError);
+  const paletteId = useWorkspaceStore((state) => state.paletteId);
+  const setPaletteId = useWorkspaceStore((state) => state.setPaletteId);
 
   const [busy, setBusy] = useState(false);
+
+  const beadSize = PALETTES[paletteId].beadSize;
+  const spec = BOARD_SPECS[beadSize];
 
   const apply = async () => {
     if (!image || !crop || busy) return;
@@ -66,10 +72,10 @@ export function SampleControls() {
         title: image.fileName,
         width: gridW,
         height: gridH,
-        palette: lockedPaletteColors(),
+        palette: paletteColors(paletteId),
         mode,
-        paletteId: lockedPalette.paletteId,
-        paletteVersion: lockedPalette.version,
+        paletteId: paletteDefinition(paletteId).paletteId,
+        paletteVersion: paletteDefinition(paletteId).version,
         settings,
         source: {
           originalWidth: image.width,
@@ -121,6 +127,45 @@ export function SampleControls() {
         </div>
       </div>
       <p className="hint">网格上限 256×256。当前比例 {(gridW / gridH).toFixed(3)}。</p>
+
+      <fieldset className="radio-group">
+        <legend>豆子规格（联动色卡）</legend>
+        {PALETTE_KEYS.map((key) => (
+          <label key={key}>
+            <input
+              type="radio"
+              name="bead-size"
+              checked={paletteId === key}
+              onChange={() => setPaletteId(key)}
+            />
+            {PALETTES[key].label}
+          </label>
+        ))}
+      </fieldset>
+
+      <div className="field">
+        <label htmlFor="board-preset">板子规格</label>
+        <select
+          id="board-preset"
+          data-testid="board-preset"
+          value={gridW === gridH && spec.presets.some((preset) => preset.width === gridW) ? gridW : ""}
+          onChange={(event) => {
+            const size = Number(event.target.value);
+            if (size > 0) setGridSize(size, size);
+          }}
+        >
+          <option value="">自定义（{gridW}×{gridH}）</option>
+          {spec.presets.map((preset) => (
+            <option key={preset.label} value={preset.width}>
+              {preset.label} · {preset.boardLabel}
+            </option>
+          ))}
+        </select>
+      </div>
+      <p className="hint">
+        {spec.note} · {boardCountLabel(beadSize, gridW, gridH)} ·{" "}
+        {finishedSizeLabel(beadSize, gridW, gridH)}
+      </p>
 
       <fieldset className="radio-group">
         <legend>透明策略</legend>

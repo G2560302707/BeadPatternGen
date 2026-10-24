@@ -4,7 +4,7 @@
 
 import { createMessageGate, PIPELINE_STAGE_LABELS, progressPercent } from "../core/pipeline";
 import type { GenerateInput, WorkerResponse } from "../core/pipeline";
-import { lockedPalette, lockedPaletteColors } from "../features/palette-panel/locked-palette";
+import { paletteColors, paletteDefinition } from "../features/palette-panel/locked-palette";
 import { useWorkspaceStore } from "./workspace-store";
 
 const gate = createMessageGate();
@@ -107,9 +107,9 @@ export function startGeneration(): void {
     alpha,
     width: state.sample.width,
     height: state.sample.height,
-    palette: lockedPaletteColors(),
-    paletteId: lockedPalette.paletteId,
-    paletteVersion: lockedPalette.version,
+    palette: paletteColors(state.paletteId),
+    paletteId: paletteDefinition(state.paletteId).paletteId,
+    paletteVersion: paletteDefinition(state.paletteId).version,
     maxColors: state.maxColors,
     mode: state.mode,
     dithering: state.dithering,

@@ -17,7 +17,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "validate:palette": "node scripts/validate-palette.mjs src/core/palette/fixtures/artkal-s@beadcolors-f97ff428.json"
+    "validate:palette": "node scripts/validate-palette.mjs src/core/palette/fixtures/artkal-s@beadcolors-f97ff428.json && node scripts/validate-palette.mjs src/core/palette/fixtures/mard-221@pindou-color-data.json"
   },
   "dependencies": {
     "fast-png": "^8.0.0",
