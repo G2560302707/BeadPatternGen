@@ -1,0 +1,93 @@
+/* 👾 像素工坊 —— 8-bit 街机风拼豆实验室（新增主题）
+   人格：像素字 × 全直角 · 硬对角阴影 · 棋盘格底 · 瞬时响应。
+   拼豆本来就是像素艺术，这个主题是「本命皮肤」。 */
+
+html[data-theme="pixel"] {
+  /* 字体：Silkscreen 像素拉丁（数字/色号）× 黄油体/系统黑体兜底中文 */
+  --font-display: "Silkscreen", "ZCOOL QingKe HuangYou", "MiSans", "PingFang SC",
+    "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+  --font-body: "Silkscreen", "MiSans", "PingFang SC", "HarmonyOS Sans SC",
+    "Microsoft YaHei", "Segoe UI", sans-serif;
+
+  /* 形状：全部直角 */
+  --radius-lg: 0px;
+  --radius-md: 0px;
+  --radius-sm: 0px;
+  --radius-full: 999px; /* 胶囊进度条等保持可读 */
+  --border-w: 2px;
+  --panel-border-style: solid;
+
+  /* 颜色：浅底棋盘格，像透明图层的画布 */
+  --bg: #e9f2ef;
+  --bg-image:
+    linear-gradient(180deg, rgba(214, 235, 228, 0.9), rgba(233, 242, 239, 0) 340px),
+    linear-gradient(45deg, rgba(46, 196, 182, 0.09) 25%, transparent 25%, transparent 75%, rgba(46, 196, 182, 0.09) 75%),
+    linear-gradient(45deg, rgba(46, 196, 182, 0.09) 25%, transparent 25%, transparent 75%, rgba(46, 196, 182, 0.09) 75%);
+  --bg-image-size: auto, 24px 24px, 24px 24px;
+  --bg-position: 0 0, 0 0, 12px 12px;
+
+  --surface: #ffffff;
+  --surface-2: #f1f7f5;
+  --ink: #1d2b35;
+  --ink-soft: #5f7a77;
+  --line: #a9c4bd;
+
+  --primary: #2ec4b6;
+  --primary-deep: #17877d;
+  --primary-soft: #d5f3ef;
+  --on-primary: #0d2b28;
+
+  /* 街机点缀：青蓝 × 荧光绿 × 金币黄 */
+  --accent-blue: #38bdf8;
+  --accent-blue-soft: #d9f0fe;
+  --accent-mint: #4ade80;
+  --accent-mint-soft: #dcfce8;
+  --accent-lemon: #f5c518;
+  --accent-lemon-soft: #fdf0c2;
+
+  --danger: #e04848;
+  --danger-soft: #fbe0e0;
+
+  /* 深度：8-bit 硬对角阴影 */
+  --shadow-card: 4px 4px 0 #c9ded9;
+  --shadow-pop: 6px 6px 0 rgba(29, 43, 53, 0.22);
+  --focus-ring: 0 0 0 3px rgba(46, 196, 182, 0.4);
+  --btn-shadow: 3px 3px 0 var(--ink);
+  --btn-shadow-primary: 3px 3px 0 var(--ink);
+  --btn-shadow-active: 1px 1px 0 var(--ink);
+  --btn-shadow-primary-active: 1px 1px 0 var(--ink);
+  --btn-shadow-small: 2px 2px 0 var(--ink);
+
+  /* 动效：瞬时，像老游戏读输入 */
+  --ease-bounce: linear;
+  --dur-fast: 70ms;
+  --dur-med: 100ms;
+  --dur-page: 120ms;
+  --lift: 0px;
+  --tilt: 0deg;
+}
+
+/* 像素 flourish：圆豆变方豆，去掉波浪线与呼吸动画 */
+html[data-theme="pixel"] .brand__pegs i,
+html[data-theme="pixel"] .stepper__bead,
+html[data-theme="pixel"] .theme-menu__beads i,
+html[data-theme="pixel"] .stepper__dash,
+html[data-theme="pixel"] *::-webkit-scrollbar-thumb {
+  border-radius: 0;
+}
+
+html[data-theme="pixel"] .stepper__item--current .stepper__bead {
+  animation: none;
+}
+
+html[data-theme="pixel"] a:hover {
+  text-decoration-style: solid;
+}
+
+html[data-theme="pixel"] .file-drop {
+  border-style: solid;
+}
+
+html[data-theme="pixel"] .progress-track__fill {
+  background: var(--primary);
+}

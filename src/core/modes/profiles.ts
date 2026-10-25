@@ -49,6 +49,17 @@ const PHOTO_PROFILE: ModeProfile = Object.freeze({
   colorMergeThreshold: 5,
   localRefinePasses: 2,
   neighborCandidateCount: 8,
+  // S11：画像黑边是市面写实图纸的主流形态；特征门槛偏高——
+  // 照片里低对比小色块更可能是噪点而非有意细节。
+  outline: Object.freeze({
+    rim: true,
+    rimStrength: 0.75,
+    darkSubjectMaxL: 45,
+    snapDelta: 30,
+    snapTolerance: 5,
+    featureMaxSize: 3,
+    featureContrast: 28,
+  }),
 });
 
 /**
@@ -67,6 +78,17 @@ const ANIME_PROFILE: ModeProfile = Object.freeze({
   colorMergeThreshold: 4,
   localRefinePasses: 3,
   neighborCandidateCount: 8,
+  // S11：市面动漫风基准——描边 + 较灵敏的锐化 + 宽松特征锁
+  // （眼睛高光 / 腮红点 / 小图标都值得保）。
+  outline: Object.freeze({
+    rim: true,
+    rimStrength: 0.8,
+    darkSubjectMaxL: 45,
+    snapDelta: 26,
+    snapTolerance: 6,
+    featureMaxSize: 4,
+    featureContrast: 25,
+  }),
 });
 
 /**
@@ -84,6 +106,17 @@ const LOGO_PROFILE: ModeProfile = Object.freeze({
   colorMergeThreshold: 2,
   localRefinePasses: 2,
   neighborCandidateCount: 8,
+  // S11：图标 / 文字本身就是细线条构图，锁最宽松（小尺寸分量也保），
+  // 锐化阈值最低——几何边缘必须干净。
+  outline: Object.freeze({
+    rim: true,
+    rimStrength: 0.9,
+    darkSubjectMaxL: 45,
+    snapDelta: 22,
+    snapTolerance: 4,
+    featureMaxSize: 6,
+    featureContrast: 18,
+  }),
 });
 
 /**
@@ -102,6 +135,17 @@ const LANDSCAPE_PROFILE: ModeProfile = Object.freeze({
   colorMergeThreshold: 6,
   localRefinePasses: 3,
   neighborCandidateCount: 8,
+  // S11：风景通常满幅无「主体轮廓」概念，rim 关闭；只保留轻锐化与
+  // 最严格的特征锁（渐变面上的孤立深点几乎都是噪点）。
+  outline: Object.freeze({
+    rim: false,
+    rimStrength: 0,
+    darkSubjectMaxL: 45,
+    snapDelta: 34,
+    snapTolerance: 4,
+    featureMaxSize: 2,
+    featureContrast: 30,
+  }),
 });
 
 /**

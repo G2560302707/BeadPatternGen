@@ -14,6 +14,7 @@ import {
 } from "../../export";
 import { ExportError } from "../../export/errors";
 import { useWorkspaceStore } from "../../state/workspace-store";
+import { celebrate } from "../../ui/confetti";
 
 export function ExportPanel() {
   const pattern = useWorkspaceStore((state) => state.pattern);
@@ -46,6 +47,7 @@ export function ExportPanel() {
     setBusy(label);
     try {
       await work();
+      celebrate();
     } catch (error) {
       setError({
         code: error instanceof ExportError ? error.code : "E_EXPORT",
@@ -74,8 +76,12 @@ export function ExportPanel() {
       {layout.slices.length > PAGE_WARN_COUNT && paper !== "a3" ? (
         <p className="hint">页数较多，可改用 A3 减少分页。</p>
       ) : null}
+      <p className="hint">
+        所有导出共用同一套「分享卡片」版式：页眉信息栏 + 白色圆角图纸卡（红角标、每 5
+        格分区线）+ 按用量排序的色卡图例 + 脚注。
+      </p>
       <div className="field">
-        <label htmlFor="png-cell">PNG 格尺寸</label>
+        <label htmlFor="png-cell">图纸 PNG 格尺寸</label>
         <select
           id="png-cell"
           value={cellSize}
@@ -109,7 +115,7 @@ export function ExportPanel() {
           checked={showCoords}
           onChange={(event) => setShowCoords(event.target.checked)}
         />
-        四边坐标
+        行列号（每 5 格）
       </label>
       <label>
         <input

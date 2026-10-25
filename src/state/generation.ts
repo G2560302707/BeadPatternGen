@@ -136,6 +136,9 @@ export function startGeneration(): void {
   if (state.alphaPolicy === "background") {
     payload.backgroundHex = state.backgroundHex;
   }
+  if (state.outlineStrength !== null) {
+    payload.outlineStrength = state.outlineStrength;
+  }
 
   disposed = false;
   startedAt = performance.now();

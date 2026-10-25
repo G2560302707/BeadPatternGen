@@ -96,3 +96,51 @@ export function mergeMaskRegion(
   }
   return out;
 }
+
+/**
+ * 带阈值谐波的裁剪区合并。
+ *
+ * 为什么不能直接合并两份归一化数据：第一遍与第二遍的 0–255 各自独立归一化
+ * （分位锚点来自各自的输出），同一数值在两份尺度里含义不同。旧实现把两份
+ * 原始值拼在一起再算一个 Otsu，阈值一旦落在第二遍尺度的主体区间里，
+ * 就会把二次推理刚找回来的边界整块切掉——「越精修越残缺」。
+ *
+ * 谐波映射：把裁剪区的值按它自己的 Otsu 阈值锚定到全图尺度——
+ * - `v ≥ cropThreshold`：[cropThreshold, 255] 线性映射到 [baseThreshold, 255]；
+ * - `v < cropThreshold`：[0, cropThreshold] 线性映射到 [0, baseThreshold]。
+ * 之后逐像素取 `max(base, harmonized)`（并集偏置：精修只增不删），合并后
+ * 的阈值就是 baseThreshold，前景判定与两遍各自的判定完全一致。
+ *
+ * 两侧阈值都来自 `adaptiveMaskThreshold`（夹在 [48, 200]），不会出现 0/255 退化。
+ */
+export function mergeRefinedMask(input: {
+  baseMask: Uint8ClampedArray;
+  baseThreshold: number;
+  regionMask: Uint8ClampedArray;
+  regionThreshold: number;
+  maskWidth: number;
+  crop: BBox;
+}): { data: Uint8ClampedArray; threshold: number } {
+  const { baseMask, baseThreshold, regionMask, regionThreshold, maskWidth, crop } = input;
+  const out = new Uint8ClampedArray(baseMask.length);
+  out.set(baseMask);
+
+  const safeCropThreshold = Math.min(254, Math.max(1, regionThreshold));
+  const upperScale = (255 - baseThreshold) / (255 - safeCropThreshold);
+  const lowerScale = baseThreshold / safeCropThreshold;
+
+  for (let row = 0; row < crop.height; row += 1) {
+    const y = crop.y + row;
+    for (let col = 0; col < crop.width; col += 1) {
+      const x = crop.x + col;
+      const value = regionMask[row * crop.width + col] ?? 0;
+      const harmonized =
+        value >= safeCropThreshold
+          ? baseThreshold + (value - safeCropThreshold) * upperScale
+          : value * lowerScale;
+      const index = y * maskWidth + x;
+      out[index] = Math.max(out[index] ?? 0, Math.round(harmonized));
+    }
+  }
+  return { data: out, threshold: baseThreshold };
+}

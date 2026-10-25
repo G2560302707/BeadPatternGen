@@ -1,0 +1,8 @@
+- ZCOOL KuaiLe（站酷快乐体）：https://raw.githubusercontent.com/google/fonts/main/ofl/zcoolkuaile/ZCOOLKuaiLe-Regular.ttf（SIL Open Font License，见同目录 OFL.txt）
+- Baloo 2（数字与拉丁）：https://raw.githubusercontent.com/google/fonts/main/ofl/baloo2/Baloo2%5Bwght%5D.ttf（SIL Open Font License，见同目录 OFL.txt）
+- ZCOOL XiaoWei（站酷小薇 · 优雅细宋）：https://raw.githubusercontent.com/google/fonts/main/ofl/zcoolxiaowei/ZCOOLXiaoWei-Regular.ttf（SIL Open Font License，见同目录 OFL.txt）
+- Ma Shan Zheng（马善政楷书 · 手写手账）：https://raw.githubusercontent.com/google/fonts/main/ofl/mashanzheng/MaShanZheng-Regular.ttf（SIL Open Font License，见同目录 OFL.txt）
+- ZCOOL QingKe HuangYou（庆科黄油体 · 元气粗圆）：https://raw.githubusercontent.com/google/fonts/main/ofl/zcoolqingkehuangyou/ZCOOLQingKeHuangYou-Regular.ttf（SIL Open Font License，见同目录 OFL.txt）
+- Quicksand（几何圆拉丁 · 素雅主题）：https://raw.githubusercontent.com/google/fonts/main/ofl/quicksand/Quicksand%5Bwght%5D.ttf（SIL Open Font License，见同目录 OFL.txt）
+- Silkscreen（像素拉丁 · 像素工坊）：https://raw.githubusercontent.com/google/fonts/main/ofl/silkscreen/Silkscreen-Regular.ttf（SIL Open Font License，见同目录 OFL.txt）
+- Fusion Pixel 12px Proportional SC（缝合像素简中 · 像素工坊）：https://registry.npmmirror.com/@fontsource/fusion-pixel-12px-proportional-sc/-/fusion-pixel-12px-proportional-sc-5.3.0.tgz（SIL Open Font License，见同目录 OFL.txt）

@@ -1,0 +1,79 @@
+/* ✉️ 复古信笺 —— 老信纸般的优雅文艺（新增主题）
+   人格：小薇宋意 × 宋体正文 · 奶油信纸横线 · 双线细框 · 压印无影。 */
+
+html[data-theme="paper"] {
+  /* 字体：小薇标题 × 衬线正文（系统宋体兜底） */
+  --font-display: "ZCOOL XiaoWei", Georgia, "Songti SC", "STSong", "SimSun", serif;
+  --font-body: Georgia, "Songti SC", "STSong", "SimSun", "Noto Serif SC", serif;
+
+  /* 形状：接近方角的信卡 */
+  --radius-lg: 10px;
+  --radius-md: 7px;
+  --radius-sm: 4px;
+  --border-w: 1.5px;
+  --panel-border-style: solid;
+
+  /* 颜色：奶油信纸横线底 */
+  --bg: #faf3e6;
+  --bg-image:
+    radial-gradient(1100px 520px at 50% -10%, rgba(255, 252, 240, 0.95), transparent 62%),
+    repeating-linear-gradient(0deg, transparent 0 30px, rgba(180, 113, 79, 0.075) 30px 31.5px);
+  --bg-image-size: auto, auto;
+
+  --surface: #fffdf5;
+  --surface-2: #fbf6ea;
+  --ink: #4a3a2c;
+  --ink-soft: #9c8a75;
+  --line: #e5d8c0;
+
+  --primary: #aa623c;
+  --primary-deep: #8a4a28;
+  --primary-soft: #f2dfd0;
+  --on-primary: #fffaf2;
+
+  /* 文房点缀：石墨蓝 × 橄榄绿 × 鎏金 */
+  --accent-blue: #7d8ca3;
+  --accent-blue-soft: #e8ebf0;
+  --accent-mint: #8a9a5b;
+  --accent-mint-soft: #eef0da;
+  --accent-lemon: #b98f21;
+  --accent-lemon-soft: #f5ecd2;
+
+  --danger: #b8503f;
+  --danger-soft: #f6e0da;
+
+  /* 深度：压印感，无浮影 */
+  --shadow-card: 0 0 0 1px rgba(180, 113, 79, 0.08) inset, 0 1px 2px rgba(74, 58, 44, 0.06);
+  --shadow-pop: 0 8px 24px rgba(74, 58, 44, 0.14);
+  --focus-ring: 0 0 0 3px rgba(170, 98, 60, 0.3);
+  --btn-shadow: 0 1px 0 rgba(74, 58, 44, 0.28);
+  --btn-shadow-primary: 0 2px 0 rgba(74, 58, 44, 0.4);
+  --btn-shadow-active: 0 0 0 rgba(74, 58, 44, 0.28);
+  --btn-shadow-primary-active: 0 0 0 rgba(74, 58, 44, 0.4);
+  --btn-shadow-small: 0 1px 0 rgba(74, 58, 44, 0.28);
+
+  /* 动效：沉静 */
+  --ease-bounce: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 140ms;
+  --dur-med: 240ms;
+  --dur-page: 300ms;
+  --lift: -2px;
+  --tilt: 0deg;
+}
+
+/* 信笺 flourish：面板换双线细框，标题宽字距，链接不用波浪线 */
+html[data-theme="paper"] .panel,
+html[data-theme="paper"] .step-intro,
+html[data-theme="paper"] .legal,
+html[data-theme="paper"] .modal {
+  border: 3.5px double var(--line);
+}
+
+html[data-theme="paper"] h1,
+html[data-theme="paper"] h2 {
+  letter-spacing: 0.1em;
+}
+
+html[data-theme="paper"] a:hover {
+  text-decoration-style: solid;
+}

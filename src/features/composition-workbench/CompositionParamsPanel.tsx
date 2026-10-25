@@ -80,12 +80,12 @@ export function CompositionParamsPanel() {
           ))}
         </div>
         <div className="field">
-          <label htmlFor="subject-scale">自定义（50–90）</label>
+          <label htmlFor="subject-scale">自定义（30–100）</label>
           <input
             id="subject-scale"
             type="number"
-            min={50}
-            max={90}
+            min={30}
+            max={100}
             step={1}
             disabled={locked}
             value={Math.round(params.subjectScale * 100)}
@@ -94,6 +94,7 @@ export function CompositionParamsPanel() {
             }
           />
         </div>
+        <p className="hint">100% + 取消「保留边距」= 主体顶满画板（画板比例与主体一致时铺满）。</p>
       </section>
 
       <section className="control-section">

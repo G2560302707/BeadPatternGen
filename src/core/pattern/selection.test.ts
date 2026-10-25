@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { EMPTY_CELL } from "./limits";
 import {
+  appendLassoPoint,
   copySelection,
   fillSelection,
   lassoIndices,
+  LASSO_POINT_SPACING,
   mirrorSelection,
   pastePatch,
   rectIndices,
@@ -60,6 +62,50 @@ describe("region selection", () => {
     );
     expect(indices.length).toBeGreaterThan(2);
     expect(indices).toContain(0);
+  });
+});
+
+describe("appendLassoPoint（套索插值记点）", () => {
+  it("第一个点直接记入", () => {
+    const points: Array<{ x: number; y: number }> = [];
+    expect(appendLassoPoint(points, 2.5, 3.5)).toBe(true);
+    expect(points).toEqual([{ x: 2.5, y: 3.5 }]);
+  });
+
+  it("微小抖动（< 0.05 格）不记点", () => {
+    const points = [{ x: 2, y: 2 }];
+    expect(appendLassoPoint(points, 2.03, 2.02)).toBe(false);
+    expect(points).toHaveLength(1);
+  });
+
+  it("近距离点（< 0.5 格）直接追加，不插值", () => {
+    const points = [{ x: 2, y: 2 }];
+    expect(appendLassoPoint(points, 2.3, 2.1)).toBe(true);
+    expect(points).toHaveLength(2);
+  });
+
+  it("快速划动（一次跳 10 格）按 ≤0.5 格步长插值补点", () => {
+    const points = [{ x: 0, y: 0 }];
+    appendLassoPoint(points, 10, 0);
+    expect(points.length).toBeGreaterThanOrEqual(20);
+    for (let i = 1; i < points.length; i += 1) {
+      const a = points[i - 1]!;
+      const b = points[i]!;
+      expect(Math.hypot(b.x - a.x, b.y - a.y)).toBeLessThanOrEqual(LASSO_POINT_SPACING + 1e-9);
+    }
+    expect(points[points.length - 1]).toEqual({ x: 10, y: 0 });
+  });
+
+  it("插值后的密集折线让「来回划动」的选区贴近真实路径覆盖", () => {
+    // 只记起止点时多边形会自交、选区缺块；密集折线覆盖完整矩形。
+    const points: Array<{ x: number; y: number }> = [];
+    appendLassoPoint(points, 1, 1);
+    appendLassoPoint(points, 8, 1);
+    appendLassoPoint(points, 8, 3);
+    appendLassoPoint(points, 1, 3);
+    appendLassoPoint(points, 1, 1);
+    const indices = lassoIndices(points, 10, 5);
+    expect(indices.length).toBeGreaterThanOrEqual(14);
   });
 });
 

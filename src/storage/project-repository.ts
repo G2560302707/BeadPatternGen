@@ -6,6 +6,7 @@ import {
   validatePattern,
 } from "../core/pattern";
 import type { BeadPattern } from "../core/pattern";
+import type { PersistedImage } from "../features/image-import/session-bytes";
 import { exportPng } from "../export/png";
 import {
   STORE_PATTERNS,
@@ -32,6 +33,10 @@ export type SaveStatus = "unsaved" | "saving" | "saved";
 export interface LoadedProject {
   meta: ProjectMeta;
   pattern: BeadPattern;
+  /** 原图快照：保存时内存里有原图才会带上；打开项目后对照条可用。 */
+  source?: PersistedImage;
+  /** 构图产物快照：构图流程中图纸真正的采样来源。 */
+  generationSource?: PersistedImage;
 }
 
 export interface QuotaSnapshot {
@@ -42,13 +47,19 @@ export interface QuotaSnapshot {
 }
 
 export interface ProjectRepository {
-  save(pattern: BeadPattern): Promise<ProjectMeta>;
+  save(
+    pattern: BeadPattern,
+    source?: PersistedImage | null,
+    generationSource?: PersistedImage | null,
+  ): Promise<ProjectMeta>;
   load(id: string): Promise<LoadedProject>;
   list(): Promise<ProjectMeta[]>;
   remove(id: string): Promise<void>;
   exists(id: string): Promise<boolean>;
   estimate(): Promise<QuotaSnapshot>;
   purgeThumbnails(): Promise<number>;
+  /** 读取保存时生成的缩略图 PNG；没有则返回 undefined（首页作品卡用）。 */
+  getThumbnail(id: string): Promise<ArrayBuffer | undefined>;
 }
 
 function defaultFactory(): IDBFactory {
@@ -73,7 +84,11 @@ function toMeta(pattern: BeadPattern): ProjectMeta {
   };
 }
 
-function recordFromPattern(pattern: BeadPattern): PatternRecord {
+function recordFromPattern(
+  pattern: BeadPattern,
+  source?: PersistedImage | null,
+  generationSource?: PersistedImage | null,
+): PatternRecord {
   validatePattern(pattern);
   const cells = new Int16Array(pattern.cells);
   const json = encodeProject(pattern);
@@ -94,6 +109,18 @@ function recordFromPattern(pattern: BeadPattern): PatternRecord {
   };
   if (json.paletteHash !== undefined) {
     record.paletteHash = json.paletteHash;
+  }
+  if (source) {
+    record.imageSource = {
+      ...source,
+      bytes: source.bytes.slice().buffer,
+    };
+  }
+  if (generationSource) {
+    record.generationSource = {
+      ...generationSource,
+      bytes: generationSource.bytes.slice().buffer,
+    };
   }
   return record;
 }
@@ -128,10 +155,10 @@ export function assemblePattern(record: PatternRecord, width: number, height: nu
 
 export function createProjectRepository(factory: IDBFactory = defaultFactory()): ProjectRepository {
   return {
-    async save(pattern) {
+    async save(pattern, source, generationSource) {
       validatePattern(pattern);
       const meta = toMeta(pattern);
-      const record = recordFromPattern(pattern);
+      const record = recordFromPattern(pattern, source, generationSource);
       let thumb: ArrayBuffer | null = null;
       try {
         const png = exportPng(pattern, {
@@ -181,7 +208,39 @@ export function createProjectRepository(factory: IDBFactory = defaultFactory()):
           (meta as ProjectMeta).width,
           (meta as ProjectMeta).height,
         );
-        return { meta: meta as ProjectMeta, pattern };
+        const loaded: LoadedProject = { meta: meta as ProjectMeta, pattern };
+        const saved = (record as PatternRecord).imageSource;
+        if (
+          saved &&
+          saved.bytes &&
+          saved.bytes.byteLength > 0 &&
+          Number.isInteger(saved.width) &&
+          saved.width > 0 &&
+          saved.height > 0 &&
+          saved.crop
+        ) {
+          loaded.source = {
+            ...saved,
+            format: saved.format as PersistedImage["format"],
+            bytes: new Uint8Array(saved.bytes),
+          };
+        }
+        const savedGeneration = (record as PatternRecord).generationSource;
+        if (
+          savedGeneration &&
+          savedGeneration.bytes &&
+          savedGeneration.bytes.byteLength > 0 &&
+          Number.isInteger(savedGeneration.width) &&
+          savedGeneration.width > 0 &&
+          savedGeneration.height > 0
+        ) {
+          loaded.generationSource = {
+            ...savedGeneration,
+            format: savedGeneration.format as PersistedImage["format"],
+            bytes: new Uint8Array(savedGeneration.bytes),
+          };
+        }
+        return loaded;
       } finally {
         db.close();
       }
@@ -246,6 +305,21 @@ export function createProjectRepository(factory: IDBFactory = defaultFactory()):
         tx.objectStore(STORE_THUMBS).clear();
       });
       return removed;
+    },
+
+    async getThumbnail(id) {
+      const db = await openDatabase(factory);
+      try {
+        const tx = db.transaction(STORE_THUMBS, "readonly");
+        const row = await requestToPromise(tx.objectStore(STORE_THUMBS).get(id));
+        await new Promise<void>((resolve, reject) => {
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+        return row?.bytes;
+      } finally {
+        db.close();
+      }
     },
   };
 }

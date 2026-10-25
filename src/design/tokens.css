@@ -1,0 +1,148 @@
+/* ============================================================
+   设计令牌 · 结构层（与主题无关的部分）
+   颜色/字体/形状/深度/动效的可变令牌见 themes/*.css；
+   组件只消费令牌，不写死颜色与形状。
+   此处 :root 默认值 = 樱粉少女（旗舰主题）的人格，
+   每套主题在 html[data-theme=…] 上整体覆盖，形成差异化。
+   ============================================================ */
+
+:root {
+  /* 字体（旗舰：快乐体标题 × Baloo 圆体数字） */
+  --font-display: "ZCOOL KuaiLe", "Baloo 2", "MiSans", "PingFang SC",
+    "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+  --font-body: "Baloo 2", "MiSans", "PingFang SC", "HarmonyOS Sans SC",
+    "Microsoft YaHei", "Segoe UI", sans-serif;
+  --font-mono: "Cascadia Code", "Sarasa Gothic", "Consolas", ui-monospace, monospace;
+
+  /* 形状 */
+  --radius-lg: 22px;
+  --radius-md: 14px;
+  --radius-sm: 9px;
+  --radius-full: 999px;
+  --border-w: 2px;
+  /* 面板边框线型：solid / dashed / double（复古信笺用） */
+  --panel-border-style: solid;
+
+  /* 深度：按钮的"可按压"立体由主题决定（硬色块/柔浮/辉光/无影） */
+  --btn-shadow: 0 3px 0 var(--line);
+  --btn-shadow-primary: 0 4px 0 var(--primary-deep);
+  --btn-shadow-active: 0 1px 0 var(--line);
+  --btn-shadow-primary-active: 0 1px 0 var(--primary-deep);
+  --btn-shadow-small: 0 2px 0 var(--line);
+
+  /* 动效人格：弹跳 / 缓浮 / 平滑 / 瞬时，由主题覆盖曲线 */
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 130ms;
+  --dur-med: 220ms;
+  --dur-page: 340ms;
+  /* 悬浮位移与俏皮倾角（像素工坊等平面主题可归零） */
+  --lift: -4px;
+  --tilt: -0.4deg;
+
+  /* 层级 */
+  --z-pop: 60;
+  --z-toast: 80;
+
+  /* 画布区（图纸预览/精修永远亮底辨色，只有 luna 特殊改浅灰白也保持高亮） */
+  --stage-bg: #ffffff;
+  --stage-line: #e8dfe6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+html {
+  color-scheme: light;
+}
+
+html[data-theme="luna"] {
+  color-scheme: dark;
+}
+
+body {
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.7;
+  background-color: var(--bg);
+  background-image: var(--bg-image);
+  background-size: var(--bg-image-size, auto);
+  background-position: var(--bg-position, 0 0);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  margin: 0;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  background: var(--primary-soft);
+  border-radius: 6px;
+  padding: 0.08em 0.45em;
+  color: var(--ink);
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline wavy var(--primary-soft);
+}
+
+::selection {
+  background: var(--primary-soft);
+}
+
+:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* 滚动条也可爱一点 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

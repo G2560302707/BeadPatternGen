@@ -131,7 +131,8 @@ export type CompositionBackgroundType = "transparent" | "solid" | "image";
  * 构图参数（纯数据，可序列化）。
  *
  * 单位约定（全部与具体像素解耦，便于 UI 在不同缩放下拖动）：
- * - `subjectScale`：主体最长边占"画布内容区"（画布减去 margin）的比例，常用 0.5–0.9。
+ * - `subjectScale`：主体最长边占"画布内容区"（画布减去 margin）的比例，可选 0.3–1；
+ *   1 + 0 边距 = 主体顶满画板（画板比例与主体一致时铺满）。
  * - `offsetX` / `offsetY`：主体中心相对画布中心的偏移，单位为画布宽 / 高，
  *   取值范围 [-1, 1]；0 = 居中，正值分别向右 / 向下。
  * - `margin`：主体与画布边缘的最小留白，单位为 `min(canvasWidth, canvasHeight)` 的比例，
@@ -142,7 +143,7 @@ export interface CompositionParams {
   canvasWidth: number;
   /** 画布高度，像素，正整数。 */
   canvasHeight: number;
-  /** 主体占比，0–1（常用 0.5–0.9）。 */
+  /** 主体占比，0.3–1（1 = 顶满内容区）。 */
   subjectScale: number;
   /** 水平偏移，单位 = 画布宽度，0 = 居中。 */
   offsetX: number;
@@ -162,11 +163,11 @@ export interface CompositionParams {
   subjectLocked: boolean;
 }
 
-/** 构图默认值：1:1 画布、透明背景、主体占 70%、锁定。 */
+/** 构图默认值：1:1 画布、透明背景、主体占 90%、锁定。 */
 export const DEFAULT_COMPOSITION_PARAMS: Readonly<CompositionParams> = Object.freeze({
   canvasWidth: 1024,
   canvasHeight: 1024,
-  subjectScale: 0.7,
+  subjectScale: 0.9,
   offsetX: 0,
   offsetY: 0,
   backgroundType: "transparent",

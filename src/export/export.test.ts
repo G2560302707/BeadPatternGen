@@ -1,4 +1,5 @@
 import { decode as decodePng } from "fast-png";
+import { readFileSync } from "node:fs";
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it } from "vitest";
 import {
@@ -9,6 +10,7 @@ import {
   encodeProject,
 } from "../core/pattern";
 import type { BeadColor, BeadPattern } from "../core/pattern";
+import { PDF_CJK_CHARSET } from "./card-style";
 import { assertExportReady } from "./assert";
 import { exportCsv } from "./csv";
 import { exportProjectJson } from "./json";
@@ -127,6 +129,33 @@ describe("PNG", () => {
         expect(hex).toBe(pattern.palette[cell]?.hex.toUpperCase());
       }
     }
+  });
+
+  it("renders the unified card layout: header band above the chart card", () => {
+    const pattern = fixture(12, 12);
+    const { layout } = renderPngRgba(pattern, {
+      cellSize: 16,
+      showGrid: true,
+      showCoords: true,
+      showCodes: false,
+      showLegend: true,
+    });
+    // 页眉信息栏 + 间距 + 卡片上边距 + 标尺都在网格上方。
+    expect(layout.gridOriginY).toBeGreaterThan(40);
+    expect(layout.gridOriginX).toBeGreaterThan(20);
+    expect(layout.width).toBeLessThanOrEqual(8000);
+    expect(layout.height).toBeLessThanOrEqual(8000);
+    // 图例在卡片下方：总高明显大于网格 + 页眉。
+    expect(layout.height).toBeGreaterThan(layout.gridOriginY + 12 * 16 + 40);
+  });
+});
+
+describe("PDF CJK charset", () => {
+  it("card-style charset stays in sync with the font build charset", () => {
+    const source = readFileSync("scripts/pdf-font-charset.mjs", "utf8");
+    const match = source.match(/PDF_CJK_CHARSET\s*=\s*"([^"]+)"/);
+    expect(match).not.toBeNull();
+    expect(PDF_CJK_CHARSET).toBe(match?.[1] ?? "");
   });
 });
 

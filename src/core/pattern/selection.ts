@@ -72,6 +72,38 @@ export function lassoIndices(
   return out;
 }
 
+/** 套索插值步长（格）：相邻两点距离超过它就补中间点，快速划动不切角。 */
+export const LASSO_POINT_SPACING = 0.5;
+
+/**
+ * 向套索折线追加一个指针采样点（格子坐标，可为小数 / 出界）。
+ *
+ * 指针事件是离散的：快速划动时两次事件之间可能跳过好几格，直接用原始
+ * 采样点连多边形会自交、选区缺块。这里按 ≤ LASSO_POINT_SPACING 的步长
+ * 在线段上补齐中间点。返回是否真的追加了点（微小抖动 < 0.05 格被忽略）。
+ */
+export function appendLassoPoint(
+  points: Array<{ x: number; y: number }>,
+  x: number,
+  y: number,
+): boolean {
+  const last = points[points.length - 1];
+  if (!last) {
+    points.push({ x, y });
+    return true;
+  }
+  const dx = x - last.x;
+  const dy = y - last.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance < 0.05) return false;
+  const steps = Math.max(1, Math.ceil(distance / LASSO_POINT_SPACING));
+  for (let step = 1; step < steps; step += 1) {
+    points.push({ x: last.x + (dx * step) / steps, y: last.y + (dy * step) / steps });
+  }
+  points.push({ x, y });
+  return true;
+}
+
 export function selectionBBox(
   indices: readonly number[],
   width: number,

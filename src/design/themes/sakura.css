@@ -1,0 +1,63 @@
+/* 🌸 樱粉少女（旗舰默认主题）——「云朵上的拼豆小铺」
+   人格：圆滚滚 · 弹跳 · 波点。其他主题以本文件为完整参照。 */
+
+html[data-theme="sakura"] {
+  /* 字体：快乐体标题 × Baloo 圆体 */
+  --font-display: "ZCOOL KuaiLe", "Baloo 2", "MiSans", "PingFang SC",
+    "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+  --font-body: "Baloo 2", "MiSans", "PingFang SC", "HarmonyOS Sans SC",
+    "Microsoft YaHei", "Segoe UI", sans-serif;
+
+  /* 形状：大圆角软糖 */
+  --radius-lg: 22px;
+  --radius-md: 14px;
+  --radius-sm: 9px;
+  --border-w: 2px;
+  --panel-border-style: solid;
+
+  /* 颜色 */
+  --bg: #fff4f8;
+  --bg-image:
+    linear-gradient(180deg, rgba(255, 233, 242, 0.9), rgba(255, 244, 248, 0) 340px),
+    radial-gradient(circle at 14px 14px, #ffe3ee 2.6px, transparent 3.4px);
+  --bg-image-size: auto, 30px 30px;
+
+  --surface: #ffffff;
+  --surface-2: #fff9fc;
+  --ink: #58424e;
+  --ink-soft: #a8889a;
+  --line: #f7d9e5;
+
+  --primary: #f76e9c;
+  --primary-deep: #d94f80;
+  --primary-soft: #ffdce9;
+  --on-primary: #ffffff;
+
+  --accent-blue: #7fbdf7;
+  --accent-blue-soft: #dff0ff;
+  --accent-mint: #58b98a;
+  --accent-mint-soft: #dcf5e8;
+  --accent-lemon: #f7c948;
+  --accent-lemon-soft: #fff3cf;
+
+  --danger: #e85454;
+  --danger-soft: #ffe3e3;
+
+  /* 深度：柔和漂浮 + 可按压 */
+  --shadow-card: 0 10px 26px rgba(247, 110, 156, 0.13), 0 2px 0 rgba(255, 255, 255, 0.9) inset;
+  --shadow-pop: 0 14px 40px rgba(217, 79, 128, 0.2);
+  --focus-ring: 0 0 0 3px rgba(247, 110, 156, 0.35);
+  --btn-shadow: 0 3px 0 var(--line);
+  --btn-shadow-primary: 0 4px 0 var(--primary-deep);
+  --btn-shadow-active: 0 1px 0 var(--line);
+  --btn-shadow-primary-active: 0 1px 0 var(--primary-deep);
+  --btn-shadow-small: 0 2px 0 var(--line);
+
+  /* 动效：弹跳俏皮 */
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 130ms;
+  --dur-med: 220ms;
+  --dur-page: 340ms;
+  --lift: -4px;
+  --tilt: -0.4deg;
+}

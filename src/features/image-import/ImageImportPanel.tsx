@@ -1,75 +1,13 @@
 import { useRef } from "react";
 import { ErrorNotice } from "../../components/ErrorNotice";
 import { LoadingNotice } from "../../components/LoadingNotice";
-import { FORMAT_LABEL } from "../../core/image";
-import { imageIdFromBytes, importImage, mimeTypeForFormat } from "../../core/subject";
-import { useWorkspaceStore } from "../../state/workspace-store";
-import { computeAutoCrop } from "../image-crop/crop-math";
-import { cancelSubjectDetection, restoreOrDetectSubjects } from "../subject-detect";
-import { decodeImageFile } from "./decode-image";
-import {
-  classifyImportError,
-  isResolutionTooLow,
-  nextImportPhase,
-  phaseLabel,
-  resolutionTooLowMessage,
-} from "./import-classify";
+import { useImageImport } from "./use-image-import";
 
+/** 紧凑导入面板（构图工作台左栏复用）；导入页的大拖放区走 ImportPage 自己的布局。 */
 export function ImageImportPanel() {
-  const image = useWorkspaceStore((state) => state.image);
-  const importPhase = useWorkspaceStore((state) => state.importPhase);
-  const importError = useWorkspaceStore((state) => state.importError);
-  const setImage = useWorkspaceStore((state) => state.setImage);
-  const clearImage = useWorkspaceStore((state) => state.clearImage);
-  const setImportPhase = useWorkspaceStore((state) => state.setImportPhase);
-  const setImportError = useWorkspaceStore((state) => state.setImportError);
-  const gridW = useWorkspaceStore((state) => state.gridW);
-  const gridH = useWorkspaceStore((state) => state.gridH);
-  const fitMode = useWorkspaceStore((state) => state.fitMode);
-
+  const { image, importPhase, importError, busy, loading, handleFile, clearImage, dismissError } =
+    useImageImport();
   const inputRef = useRef<HTMLInputElement>(null);
-  const busy = importPhase === "uploading" || importPhase === "decoding";
-
-  const handleFile = async (file: File) => {
-    setImportError(null);
-    setImportPhase(nextImportPhase("idle", "start"));
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 0));
-      setImportPhase(nextImportPhase("uploading", "header-ok"));
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const sourceImageId = await imageIdFromBytes(bytes);
-      importImage({ imageBytes: bytes, fileName: file.name, createId: () => sourceImageId });
-      const decoded = await decodeImageFile(file);
-      if (isResolutionTooLow(decoded.width, decoded.height)) {
-        decoded.bitmap.close();
-        throw new Error(
-          `RESOLUTION_TOO_LOW: ${resolutionTooLowMessage(decoded.width, decoded.height)}`,
-        );
-      }
-      const crop = computeAutoCrop(decoded.width, decoded.height, gridW / gridH, fitMode);
-      setImage(
-        {
-          ...decoded,
-          fileName: file.name,
-          formatLabel: FORMAT_LABEL[decoded.format],
-          sourceImageId,
-          ...(decoded.exifOrientation <= 1
-            ? { sourceBytes: bytes, sourceMimeType: mimeTypeForFormat(decoded.format) }
-            : {}),
-        },
-        crop,
-      );
-      restoreOrDetectSubjects();
-    } catch (error) {
-      setImportError(classifyImportError(error));
-    } finally {
-      if (inputRef.current) {
-        inputRef.current.value = "";
-      }
-    }
-  };
-
-  const loading = phaseLabel(importPhase);
 
   return (
     <section className="control-section">
@@ -113,7 +51,7 @@ export function ImageImportPanel() {
           <ErrorNotice
             code={`${importError.title} · ${importError.code}`}
             message={importError.message}
-            onDismiss={() => setImportError(null)}
+            onDismiss={dismissError}
           />
           <button
             type="button"
@@ -139,14 +77,7 @@ export function ImageImportPanel() {
               {image.warning}
             </p>
           ) : null}
-          <button
-            type="button"
-            className="btn btn--small"
-            onClick={() => {
-              cancelSubjectDetection();
-              clearImage();
-            }}
-          >
+          <button type="button" className="btn btn--small" onClick={clearImage}>
             移除图片
           </button>
         </div>

@@ -4,7 +4,6 @@ export { assertExportReady } from "./assert";
 export {
   exportPng,
   renderPngRgba,
-  pngLayout,
   cellCenterSample,
   cellCornerSample,
   PNG_CELL_SIZES,

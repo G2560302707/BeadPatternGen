@@ -82,7 +82,7 @@ export function PatternPreview() {
             </button>
           </div>
         ) : (
-          <p className="hint">从本机项目打开。原图不在内存中，对照滑块不可用。</p>
+          <p className="hint">工程来自 JSON 导入或旧版草稿，原图不在内存中，对照滑块不可用。</p>
         )}
       </section>
     );
@@ -129,7 +129,7 @@ export function PatternPreview() {
           <p className="hint">
             {generation.status === "running"
               ? generation.message
-              : "采样完成。左侧点「生成图纸」后才会匹配真实色卡。生成后可用画笔精修。"}
+              : "采样完成。点「去调色生成」后才会匹配真实色卡。生成后可用画笔精修。"}
           </p>
           <button type="button" className="btn" onClick={clearSample}>
             返回裁剪 / 重新采样

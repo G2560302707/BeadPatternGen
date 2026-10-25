@@ -1,0 +1,77 @@
+/* ☁️ 云朵白 —— 安静克制的素雅工作台
+   人格：系统黑体 · hairline 细线 · 无影扁平 · 只用底色渐变。 */
+
+html[data-theme="cloud"] {
+  /* 字体：Quicksand 几何拉丁 × 系统黑体，不用可爱字体 */
+  --font-display: "Quicksand", "MiSans", "PingFang SC", "HarmonyOS Sans SC",
+    "Microsoft YaHei", "Segoe UI", sans-serif;
+  --font-body: "Quicksand", "MiSans", "PingFang SC", "HarmonyOS Sans SC",
+    "Microsoft YaHei", "Segoe UI", sans-serif;
+
+  /* 形状：克制的小圆角 + hairline */
+  --radius-lg: 12px;
+  --radius-md: 9px;
+  --radius-sm: 7px;
+  --border-w: 1.5px;
+  --panel-border-style: solid;
+
+  /* 颜色：无纹理，纯渐变 */
+  --bg: #f5f7fa;
+  --bg-image:
+    linear-gradient(180deg, rgba(235, 240, 246, 0.9), rgba(245, 247, 250, 0) 340px),
+    radial-gradient(900px 420px at 18% -10%, rgba(160, 180, 210, 0.14), transparent 60%),
+    radial-gradient(800px 380px at 85% -12%, rgba(160, 180, 210, 0.1), transparent 60%);
+  --bg-image-size: auto, auto, auto;
+
+  --surface: #ffffff;
+  --surface-2: #f9fbfd;
+  --ink: #3c4a58;
+  --ink-soft: #8296a8;
+  --line: #e0e8f0;
+
+  --primary: #5c7fd6;
+  --primary-deep: #4665b8;
+  --primary-soft: #e7edfa;
+  --on-primary: #ffffff;
+
+  --accent-blue: #6fa7e8;
+  --accent-blue-soft: #e0edfc;
+  --accent-mint: #4fa385;
+  --accent-mint-soft: #ddf0e8;
+  --accent-lemon: #d9a441;
+  --accent-lemon-soft: #f9efda;
+
+  --danger: #d64c4c;
+  --danger-soft: #fbe3e3;
+
+  /* 深度：扁平无影，靠边线分层 */
+  --shadow-card: 0 1px 3px rgba(60, 74, 88, 0.06), 0 8px 22px rgba(60, 74, 88, 0.05);
+  --shadow-pop: 0 12px 30px rgba(60, 74, 88, 0.13);
+  --focus-ring: 0 0 0 3px rgba(92, 127, 214, 0.3);
+  --btn-shadow: none;
+  --btn-shadow-primary: none;
+  --btn-shadow-active: none;
+  --btn-shadow-primary-active: none;
+  --btn-shadow-small: none;
+
+  /* 动效：平滑收敛，不弹不跳 */
+  --ease-bounce: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 130ms;
+  --dur-med: 200ms;
+  --dur-page: 260ms;
+  --lift: -2px;
+  --tilt: 0deg;
+}
+
+/* 素雅 flourish：标题用系统黑体加粗，去掉波浪线 */
+html[data-theme="cloud"] h1,
+html[data-theme="cloud"] h2,
+html[data-theme="cloud"] h3,
+html[data-theme="cloud"] h4 {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+html[data-theme="cloud"] a:hover {
+  text-decoration-style: solid;
+}

@@ -1,0 +1,76 @@
+/* 🍇 香芋啵啵 —— 香芋紫 × 雾白，梦幻优雅慢时光
+   人格：细字长排版 · 胶囊圆 · 羽量浮影 · 糖果斜纹。 */
+
+html[data-theme="taro"] {
+  /* 字体：小薇的纤细文艺 × Quicksand 几何拉丁 */
+  --font-display: "ZCOOL XiaoWei", "Quicksand", "MiSans", "PingFang SC",
+    "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+  --font-body: "Quicksand", "MiSans", "PingFang SC", "HarmonyOS Sans SC",
+    "Microsoft YaHei", "Segoe UI", sans-serif;
+
+  /* 形状：胶囊级的圆 */
+  --radius-lg: 28px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
+  --border-w: 2px;
+  --panel-border-style: solid;
+
+  /* 颜色：斜纹糖纸底 */
+  --bg: #f7f2fc;
+  --bg-image:
+    linear-gradient(180deg, rgba(238, 226, 250, 0.9), rgba(247, 242, 252, 0) 340px),
+    repeating-linear-gradient(
+      -24deg,
+      rgba(154, 99, 210, 0.05) 0 16px,
+      transparent 16px 42px
+    );
+  --bg-image-size: auto, auto;
+
+  --surface: #ffffff;
+  --surface-2: #fbf8fe;
+  --ink: #4b3d5e;
+  --ink-soft: #9b8bb0;
+  --line: #e6d9f4;
+
+  --primary: #9a63d2;
+  --primary-deep: #7b47b1;
+  --primary-soft: #ecdffb;
+  --on-primary: #ffffff;
+
+  /* 梦幻系点缀：长春花蓝 × 海沫绿 × 蔷薇粉（不再复用樱粉的柠檬黄） */
+  --accent-blue: #9aa7f5;
+  --accent-blue-soft: #ebedfd;
+  --accent-mint: #66c2a5;
+  --accent-mint-soft: #ddf3ec;
+  --accent-lemon: #f78fb0;
+  --accent-lemon-soft: #ffe6ef;
+
+  --danger: #e85454;
+  --danger-soft: #ffe3e3;
+
+  /* 深度：几乎没有重量，只有光晕般的浮影 */
+  --shadow-card: 0 12px 32px rgba(123, 71, 177, 0.09), 0 2px 0 rgba(255, 255, 255, 0.9) inset;
+  --shadow-pop: 0 18px 44px rgba(123, 71, 177, 0.16);
+  --focus-ring: 0 0 0 3px rgba(154, 99, 210, 0.3);
+  --btn-shadow: 0 2px 8px rgba(123, 71, 177, 0.2);
+  --btn-shadow-primary: 0 3px 12px rgba(123, 71, 177, 0.38);
+  --btn-shadow-active: 0 1px 3px rgba(123, 71, 177, 0.24);
+  --btn-shadow-primary-active: 0 1px 4px rgba(123, 71, 177, 0.4);
+  --btn-shadow-small: 0 1px 5px rgba(123, 71, 177, 0.2);
+
+  /* 动效：缓缓漂浮，不弹跳 */
+  --ease-bounce: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 150ms;
+  --dur-med: 260ms;
+  --dur-page: 420ms;
+  --lift: -5px;
+  --tilt: 0deg;
+}
+
+/* 梦幻排版：标题细字距拉宽，更有信纸感 */
+html[data-theme="taro"] h1,
+html[data-theme="taro"] h2,
+html[data-theme="taro"] h3,
+html[data-theme="taro"] h4 {
+  letter-spacing: 0.08em;
+}

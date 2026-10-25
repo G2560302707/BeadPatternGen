@@ -11,15 +11,17 @@ import { SUBJECT_LABEL_MAIN } from "../types";
 import type { SubjectCandidate, SubjectMask } from "../types";
 import { computeMaskBBox } from "../mask";
 import { SegmentationError, cancelledError, wrapSegmentationError } from "./errors";
-import { adaptiveMaskThreshold, maskFromModelOutput } from "./postprocess";
+import { maskFromModelOutput } from "./postprocess";
 import { preprocessForModel, validateRgbaImage } from "./preprocess";
-import { cropRgbaImage, mergeMaskRegion, planRefineCrop } from "./refine";
+import { cropRgbaImage, mergeRefinedMask, planRefineCrop } from "./refine";
 import { DEFAULT_MIN_FOREGROUND_RATIO } from "./types";
 import type { SegmentationRunOptions } from "./types";
 
 /** 算法版本：预处理 / 后处理语义变化时递增，便于结果复现与缓存失效。
- * 1.1：分位归一化 + Otsu 自适应阈值 + bbox 裁剪二次推理。 */
-export const SEGMENTATION_ALGORITHM_VERSION = "1.1";
+ * 1.1：分位归一化 + Otsu 自适应阈值 + bbox 裁剪二次推理。
+ * 1.2：滞后阈值抢救弱响应带、清理面积按图像比例、不透明度归一化、
+ *      二次推理合并带阈值谐波（修复「越精修越残缺」）。 */
+export const SEGMENTATION_ALGORITHM_VERSION = "1.2";
 
 function defaultCandidateId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -137,20 +139,25 @@ export async function runSegmentation(options: SegmentationRunOptions): Promise<
           model,
           createdAt,
         });
-        const mergedData = mergeMaskRegion(
-          result.mask.data,
-          cropResult.mask.data,
-          image.width,
-          plan.crop,
-        );
-        const threshold = adaptiveMaskThreshold(mergedData);
-        const mergedMask: SubjectMask = { ...result.mask, data: mergedData, threshold };
+        const merged = mergeRefinedMask({
+          baseMask: result.mask.data,
+          baseThreshold: result.mask.threshold,
+          regionMask: cropResult.mask.data,
+          regionThreshold: cropResult.mask.threshold,
+          maskWidth: image.width,
+          crop: plan.crop,
+        });
+        const mergedMask: SubjectMask = {
+          ...result.mask,
+          data: merged.data,
+          threshold: merged.threshold,
+        };
         const mergedBBox = computeMaskBBox(mergedMask) ?? result.bbox;
         let foregroundPixels = 0;
         let confidenceSum = 0;
-        for (let i = 0; i < mergedData.length; i += 1) {
-          const value = mergedData[i] as number;
-          if (value > threshold) {
+        for (let i = 0; i < merged.data.length; i += 1) {
+          const value = merged.data[i] as number;
+          if (value > merged.threshold) {
             foregroundPixels += 1;
             confidenceSum += value;
           }
@@ -159,7 +166,7 @@ export async function runSegmentation(options: SegmentationRunOptions): Promise<
           mask: mergedMask,
           bbox: mergedBBox,
           confidence: foregroundPixels === 0 ? 0 : confidenceSum / foregroundPixels / 255,
-          foregroundRatio: foregroundPixels / mergedData.length,
+          foregroundRatio: foregroundPixels / merged.data.length,
         };
       } catch (error) {
         // 二次推理在裁剪区找不到主体属于精修失败：保留第一遍粗蒙版，

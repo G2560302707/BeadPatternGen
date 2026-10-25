@@ -4,7 +4,8 @@ import { DEFAULT_COMPOSITION_PARAMS } from "../../core/subject";
 export type AspectPreset = "square" | "portrait" | "landscape";
 export type PositionPreset = "center" | "up" | "down" | "left" | "right" | "free";
 
-export const SCALE_PRESETS = [0.5, 0.6, 0.7, 0.8, 0.9] as const;
+/** 主体占比预设；100% = 主体最长边顶满画布内容区短边（配合 0 边距即铺满画板）。 */
+export const SCALE_PRESETS = [0.6, 0.7, 0.8, 0.9, 1.0] as const;
 
 export function canvasSizeForAspect(
   preset: AspectPreset,
@@ -77,7 +78,7 @@ export function layoutSubject(bbox: BBox, params: CompositionParams): SubjectLay
 
 export function clampScale(value: number): number {
   if (!Number.isFinite(value)) return DEFAULT_COMPOSITION_PARAMS.subjectScale;
-  return Math.min(0.9, Math.max(0.5, value));
+  return Math.min(1, Math.max(0.3, value));
 }
 
 export function clampOffset(value: number): number {

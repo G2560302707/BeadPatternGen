@@ -63,7 +63,10 @@ describe("sampleToGrid · 核心向量", () => {
       { r: 130, g: 140, b: 150, a: 255 },
     ]);
     const result = sampleToGrid(img, 1, 1, { x: 0, y: 0, width: 2, height: 2 }, "empty");
-    expect(Array.from(result.rgb)).toEqual([70, 80, 90]);
+    // 1.1 起颜色在线性光空间平均：先 sRGB→线性求均值，再编码回 sRGB。
+    // 线性均值 (0.0901, 0.1104, 0.1352) → sRGB (85, 93, 102)；
+    // 旧 sRGB 直接平均 (70, 80, 90) 会把暗角抬亮，物理上不正确。
+    expect(Array.from(result.rgb)).toEqual([85, 93, 102]);
     expect(Array.from(result.alpha)).toEqual([255]);
   });
 
@@ -97,7 +100,9 @@ describe("sampleToGrid · 核心向量", () => {
   it("V6: 半透明红 + 白色背景合成 → 精确值", () => {
     const img = solid(1, 1, { r: 255, g: 0, b: 0, a: 128 });
     const result = sampleToGrid(img, 1, 1, FULL, "background", "#FFFFFF");
-    expect(Array.from(result.rgb)).toEqual([255, 127, 127]);
+    // 1.1 起合成在线性光空间进行：50.2% 红 + 49.8% 白的物理混合结果。
+    // sRGB 直接合成 (255,127,127) 偏暗；线性合成后编码回 sRGB 为 (255,187,187)。
+    expect(Array.from(result.rgb)).toEqual([255, 187, 187]);
     expect(Array.from(result.alpha)).toEqual([128]);
   });
 });

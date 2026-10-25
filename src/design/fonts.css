@@ -1,0 +1,67 @@
+/* 自托管字体（scripts/build-fonts.mjs 产物，OFL 许可见 public/fonts/）。
+   文件缺失时静默回退系统字体栈，font-display: swap 防闪烁。
+   每套主题只加载自己用到的字体（font 匹配按需下载）。 */
+
+@font-face {
+  font-family: "ZCOOL KuaiLe";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/ZCOOLKuaiLe-subset.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Baloo 2";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("/fonts/Baloo2-subset.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "ZCOOL XiaoWei";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/ZCOOLXiaoWei-subset.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Ma Shan Zheng";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/MaShanZheng-subset.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "ZCOOL QingKe HuangYou";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/ZCOOLQingKeHuangYou-subset.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Quicksand";
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url("/fonts/Quicksand-subset.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Silkscreen";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/Silkscreen-subset.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Fusion Pixel 12";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/FusionPixel12-subset.woff2") format("woff2");
+}

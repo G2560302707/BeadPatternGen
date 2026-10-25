@@ -6,7 +6,14 @@ import { CompositionCanvas } from "./CompositionCanvas";
 import { CompositionParamsPanel } from "./CompositionParamsPanel";
 import { confirmComposition } from "./confirm-compose";
 
-export function CompositionWorkbench() {
+interface CompositionWorkbenchProps {
+  /** 新版分页流程：跳过时回调（默认行为：留在本页并切回 classic 模式）。 */
+  onSkip?: () => void;
+  /** 新版分页流程：确认构图成功后回调（生成已自动开始）。 */
+  onConfirm?: () => void;
+}
+
+export function CompositionWorkbench({ onSkip, onConfirm }: CompositionWorkbenchProps) {
   const candidates = useWorkspaceStore((state) => state.subjectCandidates);
   const progress = useWorkspaceStore((state) => state.subjectProgress);
   const setWorkbenchMode = useWorkspaceStore((state) => state.setWorkbenchMode);
@@ -17,6 +24,7 @@ export function CompositionWorkbench() {
     cancelSubjectDetection();
     setImportPhase("ready");
     setWorkbenchMode("classic");
+    onSkip?.();
   };
 
   return (
@@ -53,7 +61,7 @@ export function CompositionWorkbench() {
           data-testid="confirm-compose"
           disabled={!canConfirm}
           onClick={() => {
-            void confirmComposition();
+            void confirmComposition().then(() => onConfirm?.());
           }}
         >
           确认生成

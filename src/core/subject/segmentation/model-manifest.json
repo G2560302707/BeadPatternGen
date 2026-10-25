@@ -1,7 +1,31 @@
 {
   "cacheName": "bead-pattern-segmentation-models-v1",
-  "defaultModelId": "isnet-general-use",
+  "defaultModelId": "isnet-anime",
   "models": [
+    {
+      "id": "isnet-anime",
+      "version": "rembg-0.0.0",
+      "license": "Apache-2.0",
+      "upstream": "https://github.com/xuebinqin/DIS",
+      "sourceUrl": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-anime.onnx",
+      "fileName": "isnet-anime.onnx",
+      "sha256": "f15622d853e8260172812b657053460e20806f04b9e05147d49af7bed31a6e99",
+      "byteLength": 176069933,
+      "inputName": "img",
+      "inputWidth": 1024,
+      "inputHeight": 1024,
+      "mean": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "std": [
+        1,
+        1,
+        1
+      ],
+      "outputIndex": 0
+    },
     {
       "id": "u2netp",
       "version": "rembg-0.0.0",
@@ -14,8 +38,16 @@
       "inputName": "input.1",
       "inputWidth": 320,
       "inputHeight": 320,
-      "mean": [0.485, 0.456, 0.406],
-      "std": [0.229, 0.224, 0.225],
+      "mean": [
+        0.485,
+        0.456,
+        0.406
+      ],
+      "std": [
+        0.229,
+        0.224,
+        0.225
+      ],
       "outputIndex": 0
     },
     {
@@ -29,8 +61,16 @@
       "byteLength": 44173029,
       "inputWidth": 320,
       "inputHeight": 320,
-      "mean": [0.485, 0.456, 0.406],
-      "std": [0.229, 0.224, 0.225],
+      "mean": [
+        0.485,
+        0.456,
+        0.406
+      ],
+      "std": [
+        0.229,
+        0.224,
+        0.225
+      ],
       "outputIndex": 0
     },
     {
@@ -45,8 +85,16 @@
       "inputName": "input_image",
       "inputWidth": 1024,
       "inputHeight": 1024,
-      "mean": [0.5, 0.5, 0.5],
-      "std": [1, 1, 1],
+      "mean": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "std": [
+        1,
+        1,
+        1
+      ],
       "outputIndex": 0
     }
   ]

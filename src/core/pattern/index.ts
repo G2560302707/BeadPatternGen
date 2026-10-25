@@ -39,6 +39,8 @@ export {
 } from "./commands";
 export type { CellChange, EditCommand, EditKind } from "./commands";
 export { applyChangesToStats, emptyLocked, markLocked } from "./stats-delta";
+export { appendLassoPoint } from "./selection";
+export { expandBrushCells } from "./brush";
 export {
   copySelection,
   fillSelection,

@@ -1,36 +1,32 @@
 /**
- * 最大颜色数约束：加权 k-medoids 子集选择。
+ * 最大颜色数约束：加权 k-means 聚类 → 真实色卡映射。
  *
  * 规格红线：返回的每个 index 都必须是 palette 中真实存在的颜色。
- * 本文件从不计算样本均值、中心点或任何合成色；medoid 只能从色卡条目里选。
+ * 聚类中心是合成色，但**只用来挑色卡**，绝不出现在任何输出里。
+ *
+ * 为什么从「加权 k-medoids」换成「k-means → 色卡映射」（1.2 变更）：
+ * 旧算法以"覆盖权重 × 距离"贪心挑色卡色，大色块永远先占坑，眼睛、腮红、
+ * 小饰物这类**样本少但色距远**的簇排不进 maxColors——小尺寸图纸上五官
+ * 直接消失，是"失真"的主因之一。k-means 让每个足够密（或足够远）的簇
+ * 都有自己的中心，中心再映射到最近的真实色卡色：小簇也能分到一个色号。
  *
  * 算法（完全确定，无随机数）：
- * 1. 样本按精确 RGB 折叠，weight = 出现次数。
- * 2. 先把每个唯一 RGB 样本映射到“全色卡最近邻”（平局取更小 index），
- *    该映射只算一次，之后不再随已选集合变化。这个最近色卡色称为样本的
- *    “对应色卡色”，也是覆盖统计的依据。
- * 3. 第一个 medoid：覆盖权重之和最大的色卡色（并列取更小 index），
- *    即所有样本的“对应色卡色”中 Σ weight 最大者。
- * 4. 之后每轮：对每个“对应色卡色尚未被选中”的样本计算
- *      score(i) = weight(i) · minDistance(i, 已选集合)
- *    取 score 最大的样本（精确平局时取其对应色卡色 index 更小者），
- *    把该样本的对应色卡色加入已选集合。若不存在这样的样本
- *    （所有对应色卡色都已被选中），则取下标最小的未选色卡色补齐，
- *    保证结果长度严格等于 min(maxColors, size)。
+ * 1. 样本按精确 RGB 折叠，weight = 出现次数（线性光无关，聚类在色卡度量空间）。
+ * 2. 确定性初始化（最远点采样）：第一个中心 = 权重最大的样本；
+ *    之后每轮取「weight × 到已选中心最小距离」最大的样本为中心，共 k 个。
+ * 3. Lloyd 迭代（≤ 32 轮或收敛）：每轮按最近中心分配、按加权均值更新中心；
+ *    空簇用「到已选中心加权距离最大的样本」补位。
+ * 4. 每个中心映射到全色卡最近色；去重后若不足 k 个，
+ *    用旧的贪心法（weight × minDistance 最大者的对应色卡色）补齐，
+ *    仍不足则按色卡下标升序补齐，保证长度严格等于 min(maxColors, size)。
  * 5. 输出前按下标升序排序。
  *
- * 复杂度：
- * - O(u·n) 建立样本 → 全色卡最近邻映射（u = 唯一 RGB 数，n = 色卡色数）；
- * - O(k·u) 完成 k 轮打分，每轮 O(u) 打分 + O(u) 更新最近距离；
- * - 空间 O(u + n)。
- * n ≤ 500 时不需要 KD-tree；且 CIEDE2000 不满足严格三角不等式，
- * 树剪枝并不可靠（详见 index-builder.ts 的同一说明）。
+ * 复杂度：O(u·n) 建映射 + O(32·k·u) 聚类 + O(k·n) 色卡映射。
  *
  * 确定性：
  * - 唯一样本先按 (r, g, b) 字典序全序排序，Map 插入顺序不会进入任何比较；
- * - 每轮按唯一样本下标升序扫描；精确平局按“对应色卡色 index 更小”裁决，
- *   不以“谁先被扫到”作为平局依据；
- * - 所有 argmax / argmin 都使用严格比较，平局落到更小 index。
+ * - 所有 argmax / argmin 严格比较，平局落到更小下标；
+ * - 均值更新使用累加器，遍历顺序固定为唯一样本下标升序，浮点求和顺序固定。
  */
 
 import type { ColorMetricName, RGB } from "../color";
@@ -39,14 +35,8 @@ import type { PaletteSpace, SpacePoint } from "./index-builder";
 import { PaletteError, assertSampleColor } from "./types";
 import type { BeadColor } from "./types";
 
-/** 尚未选中任何色卡色时的哨兵。 */
-const NO_INDEX = -1;
-
 /** 每轮打分的初始最优值；任何非负 score 都会替换它。 */
 const INITIAL_BEST_SCORE = -1;
-
-/** 第一轮覆盖统计的初始最优值；coverage 非负，任何候选都会替换。 */
-const INITIAL_BEST_COVERAGE = -1;
 
 /** 折叠后的唯一 RGB 样本及其出现次数。 */
 interface WeightedSample {
@@ -180,7 +170,7 @@ export function selectPaletteSubset(
 
   const weightedSamples = collectWeightedSamples(samples);
 
-  // 色卡数量不超过上限：全部返回，升序，不进入贪心。
+  // 色卡数量不超过上限：全部返回，升序，不进入聚类。
   if (maxColors >= paletteSize) {
     const allIndices: number[] = [];
     for (let index = 0; index < paletteSize; index += 1) {
@@ -198,95 +188,214 @@ export function selectPaletteSubset(
     samplePoints.push(space.toPoint(sample.rgb));
   }
 
-  // assignment[i]：唯一样本 i 在全色卡中的最近色卡下标（静态映射）。
-  // minDistances[i]：唯一样本 i 到当前已选集合的最小距离。
-  const assignments: number[] = [];
-  const minDistances: number[] = [];
-  const coverage: number[] = new Array<number>(paletteSize).fill(0);
+  const targetCount = Math.min(maxColors, sampleCount);
 
-  for (let index = 0; index < sampleCount; index += 1) {
-    const point = readSpacePoint(samplePoints, index);
-    const nearestIndex = nearestPaletteIndex(space, point);
-    assignments.push(nearestIndex);
-    minDistances.push(space.distance(point, readSpacePoint(space.points, nearestIndex)));
-    coverage[nearestIndex] =
-      readNumber(coverage, nearestIndex, "coverage") + readNumber(weights, index, "weights");
-  }
+  // ── 第一步：确定性初始化（最远点采样，按 weight × minDistance 打分）。──
+  const centroids: SpacePoint[] = [];
+  const centroidKeys: number[] = []; // 中心对应的唯一样本下标（平局裁决用）
+  {
+    const minDistances: number[] = new Array<number>(sampleCount).fill(Number.POSITIVE_INFINITY);
 
-  // 第一轮：覆盖权重最大者；升序 + 严格 `>` ⇒ 平局取更小 index。
-  let firstMedoid = 0;
-  let bestCoverage = INITIAL_BEST_COVERAGE;
-  for (let index = 0; index < paletteSize; index += 1) {
-    const value = readNumber(coverage, index, "coverage");
-    if (value > bestCoverage) {
-      bestCoverage = value;
-      firstMedoid = index;
-    }
-  }
-
-  const selected: number[] = [firstMedoid];
-  const isSelected: boolean[] = new Array<boolean>(paletteSize).fill(false);
-  isSelected[firstMedoid] = true;
-
-  // 把“到已选集合的最小距离”初始化为到第一个 medoid 的距离。
-  const firstMedoidPoint = readSpacePoint(space.points, firstMedoid);
-  for (let index = 0; index < sampleCount; index += 1) {
-    minDistances[index] = space.distance(readSpacePoint(samplePoints, index), firstMedoidPoint);
-  }
-
-  // 后续轮次：取 weight × minDistance 最大的样本，把它的对应色卡色加入集合。
-  while (selected.length < maxColors) {
-    let candidateIndex = NO_INDEX;
-    let bestScore = INITIAL_BEST_SCORE;
-
-    for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex += 1) {
-      const assignedIndex = readNumber(assignments, sampleIndex, "assignments");
-      if (isSelected[assignedIndex] === true) {
-        // 该样本的对应色卡色已在集合中，重复加入不会增加覆盖。
-        continue;
+    const pickNext = (): number => {
+      let bestSample = -1;
+      let bestScore = -1;
+      for (let index = 0; index < sampleCount; index += 1) {
+        const score =
+          readNumber(weights, index, "weights") * readNumber(minDistances, index, "minDistances");
+        if (score > bestScore) {
+          bestScore = score;
+          bestSample = index;
+        }
       }
+      return bestSample;
+    };
 
-      const score =
-        readNumber(weights, sampleIndex, "weights") *
-        readNumber(minDistances, sampleIndex, "minDistances");
-
-      // 严格 `>`，平局再比对应色卡色 index：
-      // 结果与样本入参顺序、唯一化后的扫描顺序都无关。
-      if (
-        score > bestScore ||
-        (score === bestScore && (candidateIndex === NO_INDEX || assignedIndex < candidateIndex))
-      ) {
-        bestScore = score;
-        candidateIndex = assignedIndex;
+    // 第一个中心：权重最大的样本（覆盖最大的颜色）。
+    let firstSample = 0;
+    let bestWeight = -1;
+    for (let index = 0; index < sampleCount; index += 1) {
+      if (readNumber(weights, index, "weights") > bestWeight) {
+        bestWeight = readNumber(weights, index, "weights");
+        firstSample = index;
       }
     }
+    centroids.push(readSpacePoint(samplePoints, firstSample));
+    centroidKeys.push(firstSample);
+    for (let index = 0; index < sampleCount; index += 1) {
+      const firstCentroid = readSpacePoint(centroids, 0);
+      minDistances[index] = space.distance(readSpacePoint(samplePoints, index), firstCentroid);
+    }
 
-    if (candidateIndex === NO_INDEX) {
-      // 所有样本的对应色卡色都已被选中：用最小未选 index 补齐。
-      for (let paletteIndex = 0; paletteIndex < paletteSize; paletteIndex += 1) {
-        if (isSelected[paletteIndex] === false) {
-          candidateIndex = paletteIndex;
-          break;
+    while (centroids.length < targetCount) {
+      const next = pickNext();
+      if (next < 0) break; // 不可达（sampleCount ≥ targetCount）
+      const nextPoint = readSpacePoint(samplePoints, next);
+      centroids.push(nextPoint);
+      centroidKeys.push(next);
+      for (let index = 0; index < sampleCount; index += 1) {
+        const distance = space.distance(readSpacePoint(samplePoints, index), nextPoint);
+        if (distance < readNumber(minDistances, index, "minDistances")) {
+          minDistances[index] = distance;
         }
       }
     }
+  }
 
-    if (candidateIndex === NO_INDEX) {
-      // selected.length < maxColors < paletteSize ⇒ 至少还有一个未选色，正常不可达。
-      throw new RangeError(
-        "internal: selectPaletteSubset could not find an unselected palette color",
-      );
+  // ── 第二步：Lloyd 迭代（加权均值中心，≤ 32 轮或零换簇收敛）。
+  // k=1 时跳过：单簇的质心是全分布的均值，映射后可能选出一个"谁都不是"的
+  // 灰色（黑白图 → 灰豆）。此时保留最远点初始化的结果——覆盖权重最大的样本
+  // 的对应色卡色，与「maxColors=1 返回覆盖最大者」的既有契约一致。
+  const MAX_LLOYD_PASSES = 32;
+  const assignments = new Int32Array(sampleCount);
+  if (targetCount > 1) {
+    for (let pass = 0; pass < MAX_LLOYD_PASSES; pass += 1) {
+      let changed = false;
+      for (let index = 0; index < sampleCount; index += 1) {
+        const point = readSpacePoint(samplePoints, index);
+        let best = 0;
+        let bestDistance = Number.POSITIVE_INFINITY;
+        for (let c = 0; c < centroids.length; c += 1) {
+          const distance = space.distance(point, readSpacePoint(centroids, c));
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            best = c;
+          }
+        }
+        if (assignments[index] !== best) {
+          assignments[index] = best;
+          changed = true;
+        }
+      }
+      if (!changed && pass > 0) break;
+
+      // 加权均值更新；空簇用「weight × minDistance 最大的样本」补位。
+      const sums = centroids.map(() => ({ L: 0, a: 0, b: 0, weight: 0 }));
+      for (let index = 0; index < sampleCount; index += 1) {
+        const cluster = assignments[index] ?? 0;
+        const bucket = sums[cluster];
+        if (bucket === undefined) continue;
+        const weight = readNumber(weights, index, "weights");
+        const point = readSpacePoint(samplePoints, index);
+        bucket.L += weight * point.L;
+        bucket.a += weight * point.a;
+        bucket.b += weight * point.b;
+        bucket.weight += weight;
+      }
+      for (let c = 0; c < centroids.length; c += 1) {
+        const bucket = sums[c];
+        if (bucket === undefined) continue;
+        if (bucket.weight > 0) {
+          centroids[c] = {
+            L: bucket.L / bucket.weight,
+            a: bucket.a / bucket.weight,
+            b: bucket.b / bucket.weight,
+          };
+        } else {
+          // 空簇：取离所有已选中心加权距离最大的样本作新中心。
+          let bestSample = -1;
+          let bestScore = -1;
+          for (let index = 0; index < sampleCount; index += 1) {
+            let minDistance = Number.POSITIVE_INFINITY;
+            for (const center of centroids) {
+              const distance = space.distance(readSpacePoint(samplePoints, index), center);
+              if (distance < minDistance) minDistance = distance;
+            }
+            const score = readNumber(weights, index, "weights") * minDistance;
+            if (score > bestScore) {
+              bestScore = score;
+              bestSample = index;
+            }
+          }
+          if (bestSample >= 0) {
+            centroids[c] = readSpacePoint(samplePoints, bestSample);
+            centroidKeys[c] = bestSample;
+          }
+        }
+      }
     }
+  }
 
-    selected.push(candidateIndex);
-    isSelected[candidateIndex] = true;
+  // ── 第三步：中心 → 真实色卡映射（按簇权重大小排序，去重）。──
+  const clusterWeights = centroids.map((_, c) => {
+    let total = 0;
+    for (let index = 0; index < sampleCount; index += 1) {
+      if (assignments[index] === c) total += readNumber(weights, index, "weights");
+    }
+    return total;
+  });
+  const order = centroids
+    .map((_, c) => c)
+    .sort((first, second) => {
+      const firstWeight = readNumber(clusterWeights, first, "clusterWeights");
+      const secondWeight = readNumber(clusterWeights, second, "clusterWeights");
+      if (firstWeight !== secondWeight) {
+        return secondWeight - firstWeight;
+      }
+      return (
+        readNumber(centroidKeys, first, "centroidKeys") -
+        readNumber(centroidKeys, second, "centroidKeys")
+      );
+    });
 
-    // 加入新 medoid 后更新每个样本到已选集合的最小距离。
-    const newMedoidPoint = readSpacePoint(space.points, candidateIndex);
-    for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex += 1) {
-      const distance = space.distance(readSpacePoint(samplePoints, sampleIndex), newMedoidPoint);
-      if (distance < readNumber(minDistances, sampleIndex, "minDistances")) {
-        minDistances[sampleIndex] = distance;
+  const selected: number[] = [];
+  const isSelected: boolean[] = new Array<boolean>(paletteSize).fill(false);
+  const markSelected = (index: number): void => {
+    if (index >= 0 && index < paletteSize && !isSelected[index]) {
+      isSelected[index] = true;
+      selected.push(index);
+    }
+  };
+
+  for (const cluster of order) {
+    const nearest = nearestPaletteIndex(space, readSpacePoint(centroids, cluster));
+    markSelected(nearest);
+  }
+
+  // ── 第四步：不足 k 个时补齐（映射撞色 / 簇数 < k 的情况）。
+  // 先按旧的贪心分数（weight × minDistance）补，再按色卡下标补，保证严格等于
+  // min(maxColors, paletteSize)。
+  if (selected.length < maxColors) {
+    const minDistances: number[] = new Array<number>(sampleCount).fill(Number.POSITIVE_INFINITY);
+    for (const index of selected) {
+      const point = readSpacePoint(space.points, index);
+      for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex += 1) {
+        const distance = space.distance(readSpacePoint(samplePoints, sampleIndex), point);
+        if (distance < readNumber(minDistances, sampleIndex, "minDistances")) {
+          minDistances[sampleIndex] = distance;
+        }
+      }
+    }
+    while (selected.length < maxColors && selected.length < paletteSize) {
+      let candidateIndex = -1;
+      let bestScore = INITIAL_BEST_SCORE;
+      for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex += 1) {
+        const assigned = nearestPaletteIndex(space, readSpacePoint(samplePoints, sampleIndex));
+        if (isSelected[assigned]) continue;
+        const score =
+          readNumber(weights, sampleIndex, "weights") *
+          readNumber(minDistances, sampleIndex, "minDistances");
+        // 严格 `>`，平局取更小色卡下标。
+        if (score > bestScore || (score === bestScore && assigned < candidateIndex)) {
+          bestScore = score;
+          candidateIndex = assigned;
+        }
+      }
+      if (candidateIndex < 0) {
+        for (let paletteIndex = 0; paletteIndex < paletteSize; paletteIndex += 1) {
+          if (!isSelected[paletteIndex]) {
+            candidateIndex = paletteIndex;
+            break;
+          }
+        }
+      }
+      if (candidateIndex < 0) break;
+      markSelected(candidateIndex);
+      const point = readSpacePoint(space.points, candidateIndex);
+      for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex += 1) {
+        const distance = space.distance(readSpacePoint(samplePoints, sampleIndex), point);
+        if (distance < readNumber(minDistances, sampleIndex, "minDistances")) {
+          minDistances[sampleIndex] = distance;
+        }
       }
     }
   }

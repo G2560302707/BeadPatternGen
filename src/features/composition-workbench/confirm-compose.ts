@@ -123,9 +123,13 @@ export async function confirmComposition(): Promise<void> {
       },
     });
     store.applySample(sampled, draft);
+    // 构图产物交给 store：精修页对照层与选区再生成以它为采样来源。
+    // （applySample 已清掉旧的来源，这里再挂上新的。）
+    useWorkspaceStore.getState().setGenerationSource(composedBitmap);
     store.setWorkbenchMode("classic");
     startGeneration();
-  } finally {
+  } catch (error) {
     composedBitmap.close();
+    throw error;
   }
 }

@@ -145,8 +145,12 @@ describe("empty policy: transparency is preserved", () => {
   });
 
   it("uses the 128 alpha threshold: 127 is empty, 128 is a bead", () => {
+    // landscape 模式不开主体描边（S11 rim=false），豆色保持红色，
+    // 本测试专注 alpha 阈值语义本身。
     const result = generatePattern(
-      makeInput(3, 1, (x) => (x === 1 ? [255, 0, 0, 127] : [255, 0, 0, 128])),
+      makeInput(3, 1, (x) => (x === 1 ? [255, 0, 0, 127] : [255, 0, 0, 128]), {
+        mode: "landscape",
+      }),
     );
 
     expect(result.pattern.cells[1]).toBe(-1);

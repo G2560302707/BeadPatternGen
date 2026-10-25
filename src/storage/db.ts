@@ -51,6 +51,30 @@ export interface PatternRecord {
   id: string;
   version: number;
   cells: ArrayBuffer;
+  /** 原图快照（可选）：保存时内存里有原图才带上，用于打开项目后恢复对照。 */
+  imageSource?: {
+    bytes: ArrayBuffer;
+    mimeType: string;
+    fileName: string;
+    format: string;
+    formatLabel: string;
+    sourceImageId: string;
+    width: number;
+    height: number;
+    crop: { x: number; y: number; width: number; height: number };
+  };
+  /** 构图产物快照（可选）：构图流程中图纸真正的采样来源。 */
+  generationSource?: {
+    bytes: ArrayBuffer;
+    mimeType: string;
+    fileName: string;
+    format: string;
+    formatLabel: string;
+    sourceImageId: string;
+    width: number;
+    height: number;
+    crop: { x: number; y: number; width: number; height: number };
+  };
   palette: unknown;
   settings: unknown;
   source: unknown;

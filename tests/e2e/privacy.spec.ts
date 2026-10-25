@@ -8,7 +8,7 @@ test("no requests besides this origin", async ({ page }) => {
       leaked.push(url);
     }
   });
-  await page.goto("/");
+  await page.goto("/#/make/import");
   await expect(page.getByTestId("privacy-notice")).toContainText("不会上传");
   await expect(page.getByTestId("privacy-notice")).toContainText("IndexedDB");
   expect(leaked).toEqual([]);

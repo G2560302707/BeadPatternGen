@@ -46,6 +46,39 @@ export interface ModeProfile {
   localRefinePasses: number;
   /** 每格参与比较的邻近色卡数量（不含当前色；当前色总会保留）。 */
   neighborCandidateCount: number;
+  /**
+   * 精修策略（S11：主体描边 / 边界锐化 / 特征锁）。可选字段：
+   * 缺省或 null 表示该模式完全关闭精修扩展，行为回到 S09/S09b。
+   * 四个内置模式都提供该策略（landscape 的 rim 为 false）。
+   */
+  outline?: Readonly<OutlinePolicy> | null;
+}
+
+/**
+ * S11 · 精修策略参数（docs/算法精修-边界与特征.md）。
+ *
+ * `rim` 只在 empty 透明策略且 maxColors ≥ 3 时生效（描边要占用一个色位，
+ * 极少色数的图纸不值得再牺牲；背景策略没有空格，无从定义轮廓）。
+ */
+export interface OutlinePolicy {
+  /** 是否做主体描边（量化前预写轮廓格采样色 + 选色预留描边位）。 */
+  readonly rim: boolean;
+  /**
+   * 描边强度 0–1（S11.1 中和档）：
+   * 1 = 接近全描（只豁免很深的边）；0 = 几乎不描。
+   * 经 rimSkipThreshold 映射为深色豁免阈值 skipL = 30 + (1−强度)×65。
+   */
+  readonly rimStrength: number;
+  /** 主体平均明度 L 低于该值时描边改用中灰，避免黑上黑。 */
+  readonly darkSubjectMaxL: number;
+  /** 内部边界锐化触发的最小相邻采样色差。 */
+  readonly snapDelta: number;
+  /** 交界格归入深色侧允许付出的保真度上限。 */
+  readonly snapTolerance: number;
+  /** 特征锁：同色连通分量尺寸上限（≤ 该尺寸才可能被锁）。 */
+  readonly featureMaxSize: number;
+  /** 特征锁：分量与环绕主色的最小色差。 */
+  readonly featureContrast: number;
 }
 
 /**
@@ -69,4 +102,9 @@ export interface RefineOptions {
   perCellDelta: Float32Array;
   edgeStrength: Float32Array;
   profile: ModeProfile;
+  /**
+   * 特征锁掩码（S11，可空）：locked[i] = 1 的格子不参与改色
+   * （孤立豆修复跳过它）。长度必须等于 width*height。
+   */
+  locked?: Uint8Array | null;
 }

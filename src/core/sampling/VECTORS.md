@@ -39,8 +39,8 @@
 
   ```
   alphaWeightSum = Σ(weight × a_i / 255)
-  outRGB   = Σ(weight × rgb_i × a_i/255) / alphaWeightSum   (alphaWeightSum > 0)
-  outRGB   = 0                                               (全透明)
+  outRGB   = L2S( Σ(weight × S2L(rgb_i) × a_i/255) / alphaWeightSum )   (alphaWeightSum > 0)
+  outRGB   = 0                                                          (全透明)
   outAlpha = 0                    if avgAlpha < 128
            = round(avgAlpha)      otherwise
   ```
@@ -52,7 +52,7 @@
 - `alphaPolicy = "background"` 且必须提供 `backgroundHex`（`#RRGGBB`）：
 
   ```
-  outRGB = Σ(weight × (rgb_i × a_i/255 + bg × (1 - a_i/255))) / A
+  outRGB = L2S( Σ(weight × (S2L(rgb_i) × a_i/255 + S2L(bg) × (1 - a_i/255))) / A )
   outAlpha = round(avgAlpha)
   ```
 
@@ -60,6 +60,17 @@
   透明度信息不会被静默丢弃。
 
 - 所有输出通道用 `round` 后 clamp 到 `[0,255]`。
+
+- **1.1 起颜色在线性光空间累计与平均**：`S2L` 为 sRGB EOTF（`c ≤ 0.04045`
+  时 `c/12.92`，否则 `((c+0.055)/1.055)^2.4`），`L2S` 为其逆。sRGB 编码值直接
+  平均会把暗色稀释（50% 黑 + 50% 白得到 188 而不是物理正确的 187/128 线性），
+  小格数图纸的描边、眼睛、阴影都会发灰发虚。上式中的求和、均值都在线性域完成，
+  仅在输出时编码回 sRGB。
+- **细暗线保留（1.1 新增）**：对每个格子做第二遍扫描，统计亮度明显低于格子
+  平均（> 20，sRGB 亮度）的可见内容；当其面积占比在 1.2%–22% 之间时视为
+  细线/描边——对比度 ≥ 130 且线色亮度 ≤ 100 时整格取线色（线稿的描边格是
+  完整的深色），否则按 `min(0.45, 对比度/130)` 向线色偏置。占比超过 22% 的
+  暗色是成块阴影（动画平面阴影），绝不能偏置；低于 1.2% 视为噪声。
 
 ## 4. 手算向量
 

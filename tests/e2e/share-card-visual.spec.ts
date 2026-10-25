@@ -67,10 +67,12 @@ test("export share card for visual acceptance", async ({ page }) => {
   await page.getByTestId("crop-auto").click();
   await page.getByTestId("apply-sample").click();
   await expect(page.getByText("采样完成")).toBeVisible();
+  await page.getByTestId("next-generate").click();
   await page.locator("#max-colors").fill("18");
   await page.getByTestId("generate").click();
   await expect(page.getByTestId("pattern-board")).toBeVisible({ timeout: 60_000 });
 
+  await page.getByTestId("step-export").click();
   const share = page.waitForEvent("download");
   await page.getByTestId("export-share-card").click();
   const download = await share;

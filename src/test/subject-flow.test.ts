@@ -196,7 +196,10 @@ describe("detect -> compose -> sample -> generate", () => {
     for (const index of [0, WIDTH - 1, WIDTH * (HEIGHT - 1), WIDTH * HEIGHT - 1]) {
       expect(cells[index]).toBe(-1);
     }
-    expect(Array.from(cells)).not.toContain(BLACK_INDEX);
+    // S11 起 photo 模式的主体轮廓会被有意描成最深色（rim 描边），
+    // 黑色允许出现在主体边界；红线「透明格不得变黑豆」由上面的四角断言守住。
+    const redCells = Array.from(cells).filter((cell) => cell === RED_INDEX).length;
+    expect(redCells).toBeGreaterThan(0);
   });
 
   it("keeps transparency out of the background policy too", async () => {

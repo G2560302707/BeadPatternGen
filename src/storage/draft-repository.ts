@@ -1,5 +1,6 @@
 import { decodeProject, encodeProject, validatePattern } from "../core/pattern";
 import type { BeadPattern } from "../core/pattern";
+import type { PersistedImage } from "../features/image-import/session-bytes";
 import {
   STORE_EDIT_DRAFTS,
   WORKSPACE_DRAFT_KEY,
@@ -15,6 +16,10 @@ export interface LoadedDraft {
   locked: Uint8Array;
   /** R1 图层侧车：仅当草稿保存过基底时返回；旧草稿没有该字段。 */
   layers?: { base: Int16Array; overlay: Int16Array | null; visible: boolean };
+  /** 原图快照：保存时内存里有原图才会带上；恢复后对照条可用。 */
+  source?: PersistedImage;
+  /** 构图产物快照：构图流程中图纸真正的采样来源，恢复后对照比例保持一致。 */
+  generationSource?: PersistedImage;
 }
 
 /** R1 · 图层侧车随草稿持久化；不进 schema 1.0 项目 JSON。 */
@@ -25,7 +30,13 @@ export interface DraftLayers {
 }
 
 export interface DraftRepository {
-  save(pattern: BeadPattern, locked: Uint8Array, layers?: DraftLayers): Promise<void>;
+  save(
+    pattern: BeadPattern,
+    locked: Uint8Array,
+    layers?: DraftLayers,
+    source?: PersistedImage | null,
+    generationSource?: PersistedImage | null,
+  ): Promise<void>;
   load(): Promise<LoadedDraft | null>;
   clear(): Promise<void>;
 }
@@ -39,7 +50,7 @@ function defaultFactory(): IDBFactory {
 
 export function createDraftRepository(factory: IDBFactory = defaultFactory()): DraftRepository {
   return {
-    async save(pattern, locked, layers) {
+    async save(pattern, locked, layers, source, generationSource) {
       validatePattern(pattern);
       const json = encodeProject(pattern);
       const cells = new Int16Array(pattern.cells);
@@ -57,6 +68,12 @@ export function createDraftRepository(factory: IDBFactory = defaultFactory()): D
           base: base ? base.buffer.slice(0) : null,
           overlay: overlay ? overlay.buffer.slice(0) : null,
           refineVisible: layers ? layers.visible : true,
+          imageSource: source
+            ? { ...source, bytes: source.bytes.slice().buffer }
+            : null,
+          generationSource: generationSource
+            ? { ...generationSource, bytes: generationSource.bytes.slice().buffer }
+            : null,
           palette: json.palette,
           settings: json.settings,
           source: json.source,
@@ -90,6 +107,28 @@ export function createDraftRepository(factory: IDBFactory = defaultFactory()): D
           base?: ArrayBuffer | null;
           overlay?: ArrayBuffer | null;
           refineVisible?: boolean;
+          imageSource?: {
+            bytes: ArrayBuffer;
+            mimeType: string;
+            fileName: string;
+            format: string;
+            formatLabel: string;
+            sourceImageId: string;
+            width: number;
+            height: number;
+            crop: { x: number; y: number; width: number; height: number };
+          } | null;
+          generationSource?: {
+            bytes: ArrayBuffer;
+            mimeType: string;
+            fileName: string;
+            format: string;
+            formatLabel: string;
+            sourceImageId: string;
+            width: number;
+            height: number;
+            crop: { x: number; y: number; width: number; height: number };
+          } | null;
           palette: unknown;
           settings: unknown;
           source: unknown;
@@ -128,6 +167,36 @@ export function createDraftRepository(factory: IDBFactory = defaultFactory()): D
         decodeProject(encodeProject(pattern));
         const locked = new Uint8Array(record.locked);
         const result: LoadedDraft = { pattern, locked };
+        if (
+          record.imageSource &&
+          record.imageSource.bytes &&
+          record.imageSource.bytes.byteLength > 0 &&
+          Number.isInteger(record.imageSource.width) &&
+          record.imageSource.width > 0 &&
+          record.imageSource.height > 0 &&
+          record.imageSource.crop
+        ) {
+          result.source = {
+            ...record.imageSource,
+            format: record.imageSource.format as PersistedImage["format"],
+            bytes: new Uint8Array(record.imageSource.bytes),
+          };
+        }
+        const savedGeneration = record.generationSource;
+        if (
+          savedGeneration &&
+          savedGeneration.bytes &&
+          savedGeneration.bytes.byteLength > 0 &&
+          Number.isInteger(savedGeneration.width) &&
+          savedGeneration.width > 0 &&
+          savedGeneration.height > 0
+        ) {
+          result.generationSource = {
+            ...savedGeneration,
+            format: savedGeneration.format as PersistedImage["format"],
+            bytes: new Uint8Array(savedGeneration.bytes),
+          };
+        }
         if (
           record.base &&
           record.base.byteLength === pattern.cells.length * 2

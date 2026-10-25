@@ -24,9 +24,11 @@ test("compose main path: import detect compose generate export", async ({ page }
   await page.locator("#compose-grid-h").fill("12");
   await page.getByTestId("confirm-compose").click();
 
+  // 确认构图后自动开始生成，完成时自动进入精修页
   await expect(page.getByTestId("pattern-board")).toBeVisible({ timeout: 60_000 });
   await expect(page.getByTestId("generation-status")).toContainText("生成完成");
 
+  await page.getByTestId("step-export").click();
   const png = page.waitForEvent("download");
   await page.getByTestId("export-png").click();
   expect((await png).suggestedFilename()).toMatch(/\.png$/);
@@ -115,6 +117,9 @@ test("reimporting the same file restores persisted subjects", async ({ page }) =
   await page.waitForFunction(
     () => Boolean((window as Window & { __beadMockDetect?: unknown }).__beadMockDetect),
   );
+  // 刷新后落在守卫页，先回导入步再导入同一张图
+  await page.getByTestId("step-import").click();
+  await expect(page.getByTestId("import-file")).toBeVisible();
   await importPng(page);
   await expect(page.getByTestId("subject-candidate-mock-main")).toBeVisible({ timeout: 5_000 });
   await expect(page.getByTestId("composition-canvas")).toBeVisible();

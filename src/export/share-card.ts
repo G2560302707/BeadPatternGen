@@ -7,10 +7,23 @@
  * 脚注与水印。布局计算（shareCardLayout）为纯函数，渲染走 Canvas 2D。
  */
 
-import { hexToRgb } from "../core/color";
 import { EMPTY_CELL } from "../core/pattern";
 import type { BeadPattern, PatternStats } from "../core/pattern";
 import { paletteEntryByDefinitionId } from "../features/palette-panel/locked-palette";
+import {
+  ACCENT,
+  CARD_BG_GRADIENT,
+  CARD_FOOTER_ZH,
+  CARD_MAJOR_EVERY,
+  CARD_TAG_ZH,
+  EMPTY_CELL_FILL,
+  GRID_LINE,
+  GRID_MAJOR,
+  INK,
+  INK_FADED,
+  INK_SOFT,
+  inkCssOnCard,
+} from "./card-style";
 import { assertExportReady } from "./assert";
 import { ExportError } from "./errors";
 
@@ -55,8 +68,8 @@ const RULER = 32;
 const MIN_CELL = 3;
 /** 格内色号的最小格尺寸；78×78 在 1242 宽下为 13px，仍可读。 */
 const CODE_MIN_CELL = 13;
-/** 图纸网格粗线间隔（格）。 */
-const MAJOR_EVERY = 5;
+/** 图纸网格粗线间隔（格）：统一宣传卡片版式的每 5 格分区线。 */
+const MAJOR_EVERY = CARD_MAJOR_EVERY;
 
 const LEGEND_ITEM_W = 104;
 const LEGEND_ITEM_H = 96;
@@ -66,13 +79,6 @@ const COMPARE_LABEL_H = 46;
 const COMPARE_GAP = 24;
 const FOOTER_H = 54;
 
-const INK = "#3A3230";
-const INK_SOFT = "#8A7F7A";
-const INK_FADED = "#B3A69F";
-const ACCENT = "#E64340";
-const EMPTY_CELL_FILL = "#FAF9F6";
-const GRID_LINE = "rgba(60, 50, 40, 0.10)";
-const GRID_MAJOR = "rgba(60, 50, 40, 0.32)";
 
 export function shareCardLayout(
   pattern: BeadPattern,
@@ -150,11 +156,9 @@ function roundedPath(
   ctx.closePath();
 }
 
-/** 相对亮度决定格内色号墨色：亮底深字、暗底浅字（与工程版导出同规则）。 */
+/** 相对亮度决定格内色号墨色：亮底深字、暗底浅字（所有导出统一规则）。 */
 function inkOnHex(hex: string): string {
-  const { r, g, b } = hexToRgb(hex);
-  const y = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-  return y > 0.55 ? "rgba(40, 32, 24, 0.85)" : "rgba(255, 255, 255, 0.92)";
+  return inkCssOnCard(hex);
 }
 
 /** 确定性伪随机（细闪颗粒位置用），不引入随机源保证可复现导出。 */
@@ -170,8 +174,8 @@ function font(size: number, weight = "400"): string {
 
 function drawBackground(ctx: CanvasRenderingContext2D, layout: ShareCardLayout): void {
   const gradient = ctx.createLinearGradient(0, 0, 0, layout.height);
-  gradient.addColorStop(0, "#FFF6F2");
-  gradient.addColorStop(1, "#FBE7E3");
+  gradient.addColorStop(0, CARD_BG_GRADIENT.top);
+  gradient.addColorStop(1, CARD_BG_GRADIENT.bottom);
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, layout.width, layout.height);
 }
@@ -197,7 +201,7 @@ function drawHeader(
   ];
 
   // 右侧红描边标签（参照图纸右上角的「拼豆图纸分享」角标）；空间不足时省略。
-  const tagText = "拼豆图纸分享";
+  const tagText = CARD_TAG_ZH;
   ctx.font = font(24, "600");
   const tagTextW = ctx.measureText(tagText).width;
   const tagW = tagTextW + 36;
@@ -559,7 +563,7 @@ function drawFooter(
   ctx.fillStyle = INK_FADED;
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
-  ctx.fillText("* 色号与用量仅供参考", PAD, layout.footer.y + FOOTER_H / 2);
+  ctx.fillText(CARD_FOOTER_ZH, PAD, layout.footer.y + FOOTER_H / 2);
   if (watermark) {
     ctx.textAlign = "right";
     ctx.fillText(watermark, CARD_W - PAD, layout.footer.y + FOOTER_H / 2);

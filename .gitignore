@@ -19,3 +19,16 @@ public/ort/
 public/models/*.onnx
 public/models/*.part
 bench/
+
+# 字体子集管线的下载缓存（TTF 源文件，产物 public/fonts 随仓库分发）
+scripts/.font-cache/
+
+# 主题审查截图产物（scripts/screenshot-themes.mjs）
+scripts/.shots/
+
+# 本地工作素材：市面参考图集 / 测试图集 / 导出与算法产物（不入库）
+参考图集/
+测试图集/
+测试输出/
+测试输出-S11/
+算法优化库/

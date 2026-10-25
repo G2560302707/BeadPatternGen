@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { defaultRepository } from "../../storage/project-repository";
 import { defaultDraftRepository } from "../../storage/draft-repository";
+import { encodePersistedGenerationSource, encodePersistedImage } from "../image-import/session-bytes";
 import { StorageError } from "../../storage/errors";
 import { useWorkspaceStore } from "../../state/workspace-store";
 import { ImportProjectButton } from "./import-project";
@@ -38,7 +39,15 @@ export function SaveControls() {
           message: `本地存储已用 ${(quota.ratio * 100).toFixed(0)}%。可先导出 JSON，再删除旧项目或清理缩略图。`,
         });
       }
-      const meta = await defaultRepository.get().save(current);
+      // 原图与构图产物随项目一起存：下次从作品库打开时对照层比例保持一致。
+      const image = useWorkspaceStore.getState().image;
+      const crop = useWorkspaceStore.getState().crop;
+      const source = await encodePersistedImage(image, crop);
+      const generationSource = await encodePersistedGenerationSource(
+        image,
+        useWorkspaceStore.getState().generationSource,
+      );
+      const meta = await defaultRepository.get().save(current, source, generationSource);
       if (useWorkspaceStore.getState().pattern !== current) return;
       setSaveStatus("saved", meta.updatedAt);
       await defaultDraftRepository.get().clear();
@@ -87,7 +96,14 @@ export function SaveControls() {
             const copy = duplicatePattern();
             if (!copy) return;
             try {
-              const meta = await defaultRepository.get().save(copy);
+              const image = useWorkspaceStore.getState().image;
+              const crop = useWorkspaceStore.getState().crop;
+              const copySource = await encodePersistedImage(image, crop);
+              const copyGeneration = await encodePersistedGenerationSource(
+                image,
+                useWorkspaceStore.getState().generationSource,
+              );
+              const meta = await defaultRepository.get().save(copy, copySource, copyGeneration);
               setHint(`已另存副本 ${copy.title}（${meta.id}），原图纸未覆盖。`);
             } catch (error) {
               setError({

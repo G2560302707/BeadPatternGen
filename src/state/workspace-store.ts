@@ -119,6 +119,8 @@ interface WorkspaceState {
   maxColors: number;
   dithering: DitheringMode;
   colorMetric: ColorMetricName;
+  /** S11.1 · 描边强度覆盖（0–1）；null = 跟随模式默认。 */
+  outlineStrength: number | null;
   /** 当前生成用色卡；决定色号体系与豆子规格（2.6mm/5mm）。 */
   paletteId: PaletteKey;
 
@@ -142,6 +144,12 @@ interface WorkspaceState {
   compositionAspect: AspectPreset;
   compositionPosition: PositionPreset;
   compositionBackgroundImage: RgbaImage | null;
+  /**
+   * 构图产物位图：确认构图后图纸真正的采样来源（主体按占比摆进画布）。
+   * 对照层 / 选区再生成都应以它为准，而不是原始照片——否则比例对不上。
+   * null = 未走构图（classic 流程），采样来源是 image + crop。
+   */
+  generationSource: ImageBitmap | null;
   manualBoxHint: boolean;
   /** S2 · 分割模型 id；null = 清单默认（默认即高精度模型）。 */
   segmentationModelId: string | null;
@@ -180,6 +188,7 @@ interface WorkspaceState {
   setPaletteId: (paletteId: PaletteKey) => void;
   setDithering: (dithering: DitheringMode) => void;
   setColorMetric: (metric: ColorMetricName) => void;
+  setOutlineStrength: (strength: number | null) => void;
   applySample: (sample: SampledGridResult, draft: BeadPattern) => void;
   clearSample: () => void;
   applyGenerated: (
@@ -208,6 +217,7 @@ interface WorkspaceState {
   setCompositionAspect: (preset: AspectPreset) => void;
   setCompositionPosition: (preset: PositionPreset) => void;
   setCompositionBackgroundImage: (image: RgbaImage | null) => void;
+  setGenerationSource: (source: ImageBitmap | null) => void;
   setManualBoxHint: (open: boolean) => void;
   setEditTool: (tool: PatternEditTool) => void;
   setPaintColorIndex: (index: number) => void;
@@ -308,6 +318,7 @@ function clearGeneratedOutput() {
     baseCells: null as Int16Array | null,
     overlayCells: null as Int16Array | null,
     refineVisible: true,
+    generationSource: null as ImageBitmap | null,
   };
 }
 
@@ -338,6 +349,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     maxColors: 24,
     dithering: "none",
     colorMetric: "ciede2000",
+    outlineStrength: null,
     paletteId: DEFAULT_PALETTE_KEY,
 
   sample: null,
@@ -354,6 +366,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   workbenchMode: "compose",
   ...createSubjectSlice(),
   ...createCompositionSlice(),
+  generationSource: null,
   editTool: "pan",
   paintColorIndex: 0,
   undoStack: [],
@@ -375,6 +388,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (previous && previous.bitmap !== image.bitmap) {
       previous.bitmap.close();
     }
+    const previousGeneration = get().generationSource;
+    if (previousGeneration) previousGeneration.close();
     set({
       image,
       crop: clampCrop(crop, image.width, image.height),
@@ -392,6 +407,8 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (previous) {
       previous.bitmap.close();
     }
+    const previousGeneration = get().generationSource;
+    if (previousGeneration) previousGeneration.close();
     set({
       image: null,
       crop: null,
@@ -484,7 +501,24 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       generation: IDLE_GENERATION,
     }),
 
-  applySample: (sample, draft) =>
+  setOutlineStrength: (strength) =>
+    set({
+      // null = 回到「跟随模式默认」；数值夹取到 [0, 1]。
+      outlineStrength:
+        strength === null
+          ? null
+          : Number.isFinite(strength)
+            ? Math.min(1, Math.max(0, strength))
+            : null,
+      pattern: null,
+      diagnostic: null,
+      stats: null,
+      generation: IDLE_GENERATION,
+    }),
+
+  applySample: (sample, draft) => {
+    const previousGeneration = get().generationSource;
+    if (previousGeneration) previousGeneration.close();
     set({
       sample,
       draft,
@@ -495,7 +529,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       generation: IDLE_GENERATION,
       highlightedColorIndex: null,
       highlightedCells: null,
-    }),
+      generationSource: null,
+    });
+  },
 
   clearSample: () => set(clearOutput()),
 
@@ -670,6 +706,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   setCompositionBackgroundImage: (compositionBackgroundImage) =>
     set({ compositionBackgroundImage }),
+
+  setGenerationSource: (generationSource) => {
+    const previous = get().generationSource;
+    if (previous && previous !== generationSource) previous.close();
+    set({ generationSource });
+  },
 
   setEditTool: (editTool) => set({ editTool }),
 

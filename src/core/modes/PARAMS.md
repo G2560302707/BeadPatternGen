@@ -306,3 +306,61 @@ edgeProtectWeight × edgeStrength ≥ isolatedPenalty
 | 某格应该并入邻色但没动  | 检查候选集：`neighborCandidateCount` ↑（+4） | 检查 `colorMergeThreshold` 是否小于该色差 | 盲目把阈值调到 20                               |
 | 颜色数量过多、画面花    | `colorMergeThreshold` ↑（每次 +1）           | `isolatedPenalty` ↑                       | 一次性把阈值翻倍                                |
 | 想完全关闭局部优化      | `localRefinePasses = 0`                      | `isolatedPenalty = 0`                     | 只把 `edgeProtectWeight` 设为 0（不会关闭改色） |
+
+---
+
+## 9. S11 · 精修扩展参数（outline.ts）
+
+> 适用文件：`outline.ts` / `generate.ts` 的 S11 集成段 / `flatten.ts` 与 `refine.ts` 的 `locked` 掩码。
+> 设计文档：`docs/算法精修-边界与特征.md`。
+
+`ModeProfile.outline`（可选字段，四内置模式均提供）：
+
+| 字段 | photo | anime | logo | landscape | 单位 | 含义 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `rim` | true | true | true | **false** | — | 主体描边开关（empty 策略且 maxColors ≥ 3 才生效） |
+| `rimStrength` | 0.75 | 0.8 | 0.9 | 0 | 0–1 | 描边强度（S11.1 中和档）；映射 skipL = 30 + (1−强度)×65 |
+| `darkSubjectMaxL` | 45 | 45 | 45 | 45 | L* | 主体平均明度低于此值 → 描边锚色改用中灰（黑上黑无分离度） |
+| `snapDelta` | 30 | 26 | 22 | 34 | ΔE | 边界锐化触发：4 邻域最大采样色差 ≥ 该值才算「骑在强边界上」 |
+| `snapTolerance` | 5 | 6 | 4 | 4 | ΔE | 交界格倒向深色侧允许的保真度预算 |
+| `featureMaxSize` | 3 | 4 | 6 | 2 | 格 | 特征锁：同色连通分量尺寸上限 |
+| `featureContrast` | 28 | 25 | 18 | 30 | ΔE | 特征锁：分量与环绕主色的最小色差 |
+
+### 9.1 描边着色规则（S11.1 中和版，确定性）
+
+**全局锚色**（兜底与细部用）：主体平均 Lab `L < darkSubjectMaxL` → 目标 `#2C2C2C`；
+暖扇区（hue 40°..85° 且彩度 ≥ 8）→ `#5A4038`；否则 → `#0A0A0A`。映射最近真实色。
+
+**轮廓格着色走 `blendRimColors`**（边线 = 主体局部色的暗化版）：
+1. 内侧参考色 = 轮廓格 4 邻非空格采样色的度量空间均值；无内侧（1 格宽细部）→ 直接描全局锚色；
+2. 内侧 L < skipL（= 30 + (1−rimStrength)×65）→ **豁免不描**（黑发边不双线，自然断线）；
+3. 调和目标 = 内侧色 L 压到 max(10, L×0.3)、色相保持 → 映射全色卡深色族（L<45）最近真实色；
+   与锚色 ΔE > 40 时退回锚色（防怪色）。
+
+选色仍预留 1 个锚色色位（k-means 选 `maxColors-1` 再并入）；调和色经轮廓格采样自然入板。
+效果：肤色段边线是深肤棕、红衣段是深红棕、蓝裤段是深藏蓝——描边「长在」主体上。
+实测（21 图，rimStrength 0.75/0.8）：自然断线比 24–41%、浅色段覆盖 100%、内部 ΔE +0.2~0.4。
+
+**用户覆盖**：`GenerateInput.outlineStrength`（0–1，可空 = 跟随 profile）；UI「高级选项 → 描边强度」滑杆，null 恢复默认。
+
+### 9.2 调参速查（S11 症状）
+
+| 症状 | 首选 | 次选 | 禁止 |
+| --- | --- | --- | --- |
+| 描边太黑/主体太暗时看不清 | 确认主体均色（darkSubjectMaxL 是否应更高） | 换模式或关 `rim` | 直接改锚色目标 hex |
+| 边界仍模糊 | `snapTolerance` ↑（+2） | `snapDelta` ↓（-4） | `snapTolerance` 拉到 15+（会吞浅色细节） |
+| 描边太刻意/太黑 | `rimStrength` ↓（0.6–0.75） | 确认走的是调和描边（blendRimColors） | 恢复全局单色描边 |
+| 描边太淡/断线过多 | `rimStrength` ↑（0.85–0.95） | `darkSubjectMaxL` 检查主体均色 | 强度 1 也不要改 skipL 下限 30 |
+| 想完全关描边 | `rimStrength = 0` 或 UI 滑杆拉 0 | 换 landscape 模式 | 删 outlinePolicy（会连带关掉锐化与锁） |
+| 眼睛/小图标被抹 | `featureContrast` ↓ | `featureMaxSize` ↑ | 关掉特征锁 |
+| 色块内部又出斑噪 | `featureContrast` ↑（锁变严让 flatten 敢干活） | `colorMergeThreshold` ↑ | — |
+
+### 9.3 实现层不变量（S11）
+
+1. **描边只发生在量化前**：轮廓格采样色预写为锚色（副本缓冲，不改入参），
+   后续 k-means / 最近邻 / flatten / refine 把描边当普通色块维护。
+2. **色位预留保证锚色必在工作色板**：`reserveOutlineIndex` 去重后长度 ≤ maxColors。
+3. **特征锁是掩码不是开关**：锁定格在 flatten / snap / refine 三处都被跳过，
+   但保留投票权（邻格判定能看到它的真实颜色）。
+4. **锐化单趟、只加深**：每次调用至多向深色侧推一步；管线只调用一次。
+5. **确定性**：锚色选择、rim 检测、锁判定、锐化全部 row-major + 严格比较 + 平局取小下标。

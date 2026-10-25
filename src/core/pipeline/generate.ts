@@ -20,7 +20,18 @@
 import { deltaE2000, deltaEOklab, hexToRgb, rgbToLab, rgbToOklab } from "../color";
 import type { ColorMetricName, RGB } from "../color";
 import { floydSteinberg } from "../dithering";
+import { flattenRegions } from "../modes/flatten";
 import { getModeProfile, refineLocally } from "../modes";
+import {
+  blendRimColors,
+  chooseOutlineAnchor,
+  computeFeatureLock,
+  computeRimMask,
+  reserveOutlineIndex,
+  rimSkipThreshold,
+  snapBoundaries,
+} from "../modes/outline";
+import type { OutlineAnchor } from "../modes/outline";
 import { buildPaletteIndex, selectPaletteSubset } from "../palette";
 import type { BeadColor as PaletteBeadColor } from "../palette";
 import { EMPTY_CELL, computePaletteHash, computeStats, validatePattern } from "../pattern";
@@ -65,6 +76,11 @@ export interface GenerateInput {
   colorMetric: ColorMetricName;
   transparentPolicy: TransparentPolicy;
   ditherStrength: number;
+  /**
+   * S11.1 · 描边强度覆盖（0–1，可空 = 跟随模式默认 profile.outline.rimStrength）。
+   * 仅在模式开启 rim 时生效；越界值在描边启用前校验。
+   */
+  outlineStrength?: number;
   source: PatternSource;
   title: string;
   id: string;
@@ -257,6 +273,35 @@ function pickWorkingPalette(
 }
 
 /**
+ * S11 · 描边模式下的选色：先选 maxColors-1 个，再并入描边锚色下标。
+ *
+ * 描边格的采样色已在量化前预写为锚色，k-means 大概率自己就会选中它；
+ * 预留是确定性兜底——即使聚类没分给它坑位，锚色也一定在工作色板里。
+ */
+function pickWorkingPaletteWithOutline(
+  fullPalette: readonly BeadColor[],
+  samples: readonly RGB[],
+  maxColors: number,
+  metric: ColorMetricName,
+  anchorIndex: number,
+): BeadColor[] {
+  const paletteColors = asPaletteColors(fullPalette);
+  // 色卡总数不超过上限时全量返回已含锚色，无需预留。
+  if (maxColors >= paletteColors.length) {
+    return pickWorkingPalette(fullPalette, samples, maxColors, metric);
+  }
+  const subset = selectPaletteSubset(samples, paletteColors, maxColors - 1, metric);
+  const reserved = reserveOutlineIndex(subset, anchorIndex, maxColors);
+  return reserved.map((index) => {
+    const color = fullPalette[index];
+    if (color === undefined) {
+      throw new PipelineError("E_PIPELINE", `subset index ${index} is outside the source palette`);
+    }
+    return color;
+  });
+}
+
+/**
  * 全透明图（empty 策略）没有可见样本时的色卡兜底。
  *
  * `selectPaletteSubset` 的契约要求样本非空，但“所有格子都是空格、零颗豆”是
@@ -335,8 +380,8 @@ function computePerCellDelta(
 }
 
 function resolveDithering(mode: ImageMode, requested: DitheringMode): DitheringMode {
-  const profile = getModeProfile(mode);
-  if (!profile.allowUserDithering && requested !== "none") {
+  const modeProfile = getModeProfile(mode);
+  if (!modeProfile.allowUserDithering && requested !== "none") {
     throw new PipelineError(
       "E_INVALID_SETTINGS",
       `${mode} mode forbids dithering; received ${requested}`,
@@ -352,6 +397,8 @@ function resolveDithering(mode: ImageMode, requested: DitheringMode): DitheringM
 export function generatePattern(input: GenerateInput, hooks: GenerateHooks = {}): GenerateResult {
   const { width, height, rgb, alpha, transparentPolicy } = input;
   const cellCount = width * height;
+  const profile = getModeProfile(input.mode);
+  const outlinePolicy = profile.outline ?? null;
 
   throwIfCancelled(hooks);
   report(hooks, { stage: "sample", done: 0, total: cellCount });
@@ -379,7 +426,62 @@ export function generatePattern(input: GenerateInput, hooks: GenerateHooks = {})
   // 透明策略与背景色必须在任何像素计算之前解析完毕，错误码固定为 E_INVALID_SETTINGS。
   const transparency = resolveTransparency(transparentPolicy, input.backgroundHex);
   // background 策略下把 alpha=0 的哨兵色替换成背景色，后续所有步骤只读这份缓冲。
-  const effectiveRgb = buildEffectiveRgb(rgb, alpha, cellCount, transparency);
+  let effectiveRgb = buildEffectiveRgb(rgb, alpha, cellCount, transparency);
+
+  // ── S11 · 主体描边（量化前）──
+  // S11.1 中和：描边色随主体局部色调调和（blendRimColors），深色段自然豁免，
+  // 强度可由 input.outlineStrength 覆盖模式默认。
+  // 仅 empty 策略（有透明格才有轮廓）且色数 ≥ 3（描边要占一个色位）时启用。
+  let outlinePlan: { rimMask: Uint8Array; anchor: OutlineAnchor } | null = null;
+  if (
+    outlinePolicy !== null &&
+    outlinePolicy.rim &&
+    transparency.policy === "empty" &&
+    input.maxColors >= 3
+  ) {
+    const rimStrength = input.outlineStrength ?? outlinePolicy.rimStrength;
+    if (
+      typeof input.outlineStrength === "number" &&
+      (!Number.isFinite(input.outlineStrength) ||
+        input.outlineStrength < 0 ||
+        input.outlineStrength > 1)
+    ) {
+      throw new PipelineError(
+        "E_INVALID_SETTINGS",
+        `outlineStrength must be within [0, 1]; received ${String(input.outlineStrength)}`,
+      );
+    }
+    const rimMask = computeRimMask(alpha, width, height, EMPTY_ALPHA_THRESHOLD);
+    let rimCount = 0;
+    for (let index = 0; index < rimMask.length; index += 1) {
+      if (rimMask[index] === 1) rimCount += 1;
+    }
+    if (rimCount > 0) {
+      const toneSamples = collectSamples(effectiveRgb, alpha, cellCount, transparency);
+      const anchor = chooseOutlineAnchor(
+        toneSamples,
+        asPaletteColors(input.palette),
+        input.colorMetric,
+        outlinePolicy.darkSubjectMaxL,
+      );
+      const blend = blendRimColors({
+        width,
+        height,
+        rgb: effectiveRgb,
+        alpha,
+        palette: asPaletteColors(input.palette),
+        metric: input.colorMetric,
+        rimMask,
+        anchor: anchor.rgb,
+        skipL: rimSkipThreshold(rimStrength),
+      });
+      if (blend.painted > 0) {
+        effectiveRgb = blend.rgb;
+        outlinePlan = { rimMask, anchor };
+      }
+    }
+  }
+
   report(hooks, { stage: "sample", done: cellCount, total: cellCount });
 
   throwIfCancelled(hooks);
@@ -388,7 +490,15 @@ export function generatePattern(input: GenerateInput, hooks: GenerateHooks = {})
   const workingPalette =
     samples.length === 0
       ? pickFallbackPalette(input.palette, input.maxColors)
-      : pickWorkingPalette(input.palette, samples, input.maxColors, input.colorMetric);
+      : outlinePlan !== null
+        ? pickWorkingPaletteWithOutline(
+            input.palette,
+            samples,
+            input.maxColors,
+            input.colorMetric,
+            outlinePlan.anchor.index,
+          )
+        : pickWorkingPalette(input.palette, samples, input.maxColors, input.colorMetric);
   const paletteColors = asPaletteColors(workingPalette);
   const index = buildPaletteIndex(paletteColors, input.colorMetric);
   const paletteRgb = workingPalette.map((color) => hexToRgb(color.hex));
@@ -429,6 +539,53 @@ export function generatePattern(input: GenerateInput, hooks: GenerateHooks = {})
 
   throwIfCancelled(hooks);
   report(hooks, { stage: "refine", done: 0, total: 1 });
+  // ── S11 · 特征锁：高对比小色块（眼高光/瞳孔/小图标）是有意细节，
+  // flatten 与 refine 都不得改写。在 flatten 前基于当前格子计算。──
+  const locked =
+    outlinePolicy !== null
+      ? computeFeatureLock(
+          workingCells,
+          width,
+          height,
+          paletteColors,
+          input.colorMetric,
+          outlinePolicy.featureMaxSize,
+          outlinePolicy.featureContrast,
+        )
+      : null;
+
+  // S09b · 色块平整化：先收敛斑噪与 2 格碎片，再做 S09 的孤立豆修复。
+  // ΔE 门槛用模式的 colorMergeThreshold，真细节（描边/高光/色块边界）不会被平掉。
+  workingCells = new Int16Array(
+    flattenRegions({
+      width,
+      height,
+      cells: workingCells,
+      palette: paletteColors,
+      metric: input.colorMetric,
+      mergeThreshold: profile.colorMergeThreshold,
+      ...(locked !== null ? { locked } : {}),
+    }),
+  );
+
+  // ── S11 · 内部边界锐化：骑在强边界上的格子归入较深一侧，收敛交界噪点带。──
+  if (outlinePolicy !== null) {
+    workingCells = new Int16Array(
+      snapBoundaries({
+        width,
+        height,
+        cells: workingCells,
+        rgb: effectiveRgb,
+        palette: paletteColors,
+        metric: input.colorMetric,
+        snapDelta: outlinePolicy.snapDelta,
+        snapTolerance: outlinePolicy.snapTolerance,
+        ...(locked !== null ? { locked } : {}),
+        ...(outlinePlan !== null ? { rimMask: outlinePlan.rimMask } : {}),
+      }),
+    );
+  }
+
   const edgeStrength = computeEdgeStrength(
     effectiveRgb,
     alpha,
@@ -448,7 +605,8 @@ export function generatePattern(input: GenerateInput, hooks: GenerateHooks = {})
       metric: input.colorMetric,
       perCellDelta,
       edgeStrength,
-      profile: getModeProfile(input.mode),
+      profile,
+      ...(locked !== null ? { locked } : {}),
     }),
   );
   perCellDelta = computePerCellDelta(effectiveRgb, workingCells, paletteRgb, input.colorMetric);

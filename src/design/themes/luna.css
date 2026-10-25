@@ -1,0 +1,86 @@
+/* 🌙 月夜宫阙 —— 二次元暗色：深夜紫底 × 霓虹粉青点缀（画布区保持亮底辨色）
+   人格：霓虹辉光 · 玻璃面板 · 星空底。 */
+
+html[data-theme="luna"] {
+  /* 字体：快乐体在暗底上是可爱的霓虹招牌 */
+  --font-display: "ZCOOL KuaiLe", "Baloo 2", "MiSans", "PingFang SC",
+    "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+  --font-body: "Baloo 2", "MiSans", "PingFang SC", "HarmonyOS Sans SC",
+    "Microsoft YaHei", "Segoe UI", sans-serif;
+
+  /* 形状 */
+  --radius-lg: 20px;
+  --radius-md: 13px;
+  --radius-sm: 9px;
+  --border-w: 2px;
+  --panel-border-style: solid;
+
+  /* 颜色：星空底 */
+  --bg: #221c30;
+  --bg-image:
+    radial-gradient(1100px 500px at 50% -8%, rgba(150, 106, 214, 0.22), transparent 60%),
+    radial-gradient(circle at 1.4px 1.4px, rgba(255, 255, 255, 0.16) 1.1px, transparent 1.8px);
+  --bg-image-size: auto, 34px 34px;
+
+  --surface: #2d2542;
+  --surface-2: #372d50;
+  --ink: #f0e9fa;
+  --ink-soft: #a798c6;
+  --line: #4a3d6b;
+
+  --primary: #ff8fc5;
+  --primary-deep: #b8547e;
+  --primary-soft: rgba(255, 143, 197, 0.16);
+  --on-primary: #3a1e2c;
+
+  --accent-blue: #8fd4f7;
+  --accent-blue-soft: rgba(143, 212, 247, 0.15);
+  --accent-mint: #7fe0b0;
+  --accent-mint-soft: rgba(127, 224, 176, 0.14);
+  --accent-lemon: #ffd97a;
+  --accent-lemon-soft: rgba(255, 217, 122, 0.15);
+
+  --danger: #ff8585;
+  --danger-soft: rgba(255, 133, 133, 0.15);
+
+  /* 深度：深阴影 + 细霓虹描边 */
+  --shadow-card: 0 12px 30px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  --shadow-pop: 0 16px 46px rgba(0, 0, 0, 0.5);
+  --focus-ring: 0 0 0 3px rgba(255, 143, 197, 0.4);
+  --btn-shadow: 0 3px 0 rgba(0, 0, 0, 0.4);
+  --btn-shadow-primary: 0 4px 0 var(--primary-deep), 0 0 18px rgba(255, 143, 197, 0.35);
+  --btn-shadow-active: 0 1px 0 rgba(0, 0, 0, 0.4);
+  --btn-shadow-primary-active: 0 1px 0 var(--primary-deep);
+  --btn-shadow-small: 0 2px 0 rgba(0, 0, 0, 0.4);
+
+  /* 动效：可爱弹跳保留，浮起收敛 */
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 130ms;
+  --dur-med: 220ms;
+  --dur-page: 340ms;
+  --lift: -3px;
+  --tilt: 0deg;
+
+  --stage-bg: #fdf7fa;
+  --stage-line: #e6d9e3;
+}
+
+html[data-theme="luna"] body {
+  background-attachment: fixed;
+}
+
+/* 霓虹 flourish：品牌名渐变发光，主按钮带光晕 */
+html[data-theme="luna"] .brand__name {
+  background: linear-gradient(92deg, #ff8fc5 20%, #8fd4f7 80%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+html[data-theme="luna"] .stepper__item--current .stepper__bead {
+  box-shadow: 0 3px 0 var(--primary-deep), 0 0 16px rgba(255, 143, 197, 0.5);
+}
+
+html[data-theme="luna"] .shell__header {
+  border-bottom-color: rgba(255, 143, 197, 0.22);
+}

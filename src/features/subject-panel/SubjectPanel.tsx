@@ -26,6 +26,7 @@ function modelLabel(modelId: string, sizeLabel: string): string {
 const MODEL_SIZE_LABELS: Record<string, string> = {
   u2netp: "4.4 MB",
   silueta: "42 MB",
+  "isnet-anime": "168 MB",
   "isnet-general-use": "170 MB",
 };
 

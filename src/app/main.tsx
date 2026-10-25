@@ -1,7 +1,12 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { App } from "./App";
+import { HashRouter } from "react-router-dom";
+import { AppRoutes } from "./router";
+import { applyTheme, loadInitialTheme } from "./theme";
 import "./styles.css";
+
+// 渲染前应用主题，避免首帧闪错色
+applyTheme(loadInitialTheme());
 
 const root = document.getElementById("root");
 if (!root) {
@@ -10,6 +15,8 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <HashRouter>
+      <AppRoutes />
+    </HashRouter>
   </StrictMode>,
 );

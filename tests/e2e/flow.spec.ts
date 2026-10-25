@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { fixturePng, gotoMock } from "./helpers";
+import { fixturePng, gotoMock, makePattern } from "./helpers";
 
 test("upload crop generate save reload export", async ({ page }) => {
   const extra: string[] = [];
@@ -12,37 +12,27 @@ test("upload crop generate save reload export", async ({ page }) => {
 
   await gotoMock(page);
   await expect(page.getByTestId("privacy-notice")).toBeVisible();
-  await page.getByTestId("import-file").setInputFiles({
-    name: "fixture.png",
-    mimeType: "image/png",
-    buffer: fixturePng(),
-  });
-  await expect(page.getByTestId("skip-compose")).toBeVisible();
-  await page.getByTestId("skip-compose").click();
-  await expect(page.getByTestId("crop-controls")).toBeVisible();
-  await page.locator("#grid-w").fill("12");
-  await page.locator("#grid-h").fill("12");
-  await page.getByTestId("crop-auto").click();
-  await page.getByTestId("apply-sample").click();
-  await expect(page.getByText("采样完成")).toBeVisible();
-  await page.locator("#max-colors").fill("8");
-  await page.getByTestId("generate").click();
-  await expect(page.getByTestId("pattern-board")).toBeVisible({ timeout: 60_000 });
+  const firstId = await makePattern(page, { w: "12", h: "12", maxColors: "8" });
   await expect(page.getByTestId("quality-report")).toBeVisible();
   await expect(page.getByTestId("palette-stats")).toContainText("颗");
-  const firstId = await page.getByTestId("pattern-board").getAttribute("data-pattern-id");
-  expect(firstId).toBeTruthy();
 
+  // 保存到本机（导出步）
+  await page.getByTestId("step-export").click();
+  await expect(page.getByTestId("save-project")).toBeVisible();
   await page.getByTestId("save-project").click();
   await expect(page.getByTestId("save-status")).toContainText("已保存", { timeout: 15_000 });
 
+  // 刷新后从首页作品库重新打开
   await page.reload();
-  await expect(page.getByRole("button", { name: /打开 / })).toBeVisible({ timeout: 15_000 });
-  await page.getByRole("button", { name: /打开 / }).first().click();
+  await page.locator(".brand").click();
+  await expect(page.getByTestId(`open-project-${firstId}`)).toBeVisible({ timeout: 15_000 });
+  await page.getByTestId(`open-project-${firstId}`).click();
   await expect(page.getByTestId("pattern-board")).toBeVisible({ timeout: 15_000 });
   const reopened = await page.getByTestId("pattern-board").getAttribute("data-pattern-id");
   expect(reopened).toBe(firstId);
 
+  // 四种格式导出
+  await page.getByTestId("step-export").click();
   const png = page.waitForEvent("download");
   await page.getByTestId("export-png").click();
   expect((await png).suggestedFilename()).toMatch(/\.png$/);
@@ -75,6 +65,7 @@ test("cancel then generate keeps only the new task", async ({ page }) => {
   await page.locator("#grid-w").fill("24");
   await page.locator("#grid-h").fill("24");
   await page.getByTestId("apply-sample").click();
+  await page.getByTestId("next-generate").click();
   await page.getByTestId("generate").click();
   await page.getByTestId("cancel-generate").click({ timeout: 3_000, force: true }).catch(() => undefined);
   if (await page.getByTestId("generate").isVisible()) {

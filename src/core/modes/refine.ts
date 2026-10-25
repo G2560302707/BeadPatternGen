@@ -268,6 +268,15 @@ function assertOptions(options: RefineOptions): number {
     );
   }
 
+  if (options.locked != null && !(options.locked instanceof Uint8Array)) {
+    throw new RangeError("locked must be a Uint8Array when provided");
+  }
+  if (options.locked != null && options.locked.length !== cellCount) {
+    throw new RangeError(
+      `locked.length must equal width*height=${cellCount}; received ${options.locked.length}`,
+    );
+  }
+
   assertMetric(options.metric);
   assertProfile(options.profile);
 
@@ -489,6 +498,8 @@ interface PassContext {
   readonly mergeThreshold: number;
   readonly isolatedPenalty: number;
   readonly edgeProtectWeight: number;
+  /** 特征锁掩码（S11，可空）：锁定格不参与孤立豆修复改色。 */
+  readonly locked: Uint8Array | null;
 }
 
 /**
@@ -512,6 +523,10 @@ function runPass(cells: Int16Array, context: PassContext): boolean {
         throw new RangeError(`internal: missing cell at index ${cellIndex}`);
       }
       if (current === EMPTY_CELL) {
+        continue;
+      }
+      // S11 特征锁：有意细节（眼高光 / 瞳孔 / 小图标）不做孤立豆修复。
+      if (context.locked != null && context.locked[cellIndex] === 1) {
         continue;
       }
 
@@ -630,6 +645,7 @@ export function refineLocally(options: RefineOptions): Int16Array {
     mergeThreshold: options.profile.colorMergeThreshold,
     isolatedPenalty: options.profile.isolatedPenalty,
     edgeProtectWeight: options.profile.edgeProtectWeight,
+    locked: options.locked ?? null,
   };
 
   for (let pass = 0; pass < passes; pass += 1) {

@@ -8,17 +8,25 @@ import {
 } from "./models";
 
 describe("分割模型清单", () => {
-  it("默认模型是清单 defaultModelId（高精度 isnet），且元数据完整", () => {
+  it("默认模型是清单 defaultModelId（1.2 起为动漫专精 isnet-anime），且元数据完整", () => {
     const spec = getSegmentationModelSpec();
     expect(spec.id).toBe(DEFAULT_SEGMENTATION_MODEL_ID);
-    expect(spec.id).toBe("isnet-general-use");
+    expect(spec.id).toBe("isnet-anime");
     expect(spec.inputWidth).toBe(1024);
     expect(spec.inputHeight).toBe(1024);
-    expect(spec.inputName).toBe("input_image");
+    expect(spec.inputName).toBe("img");
     expect(spec.sha256).toMatch(/^[0-9a-f]{64}$/);
     expect(spec.byteLength).toBeGreaterThan(0);
     expect(spec.license).toBe("Apache-2.0");
-    expect(segmentationModelPath(spec)).toBe("models/isnet-general-use.onnx");
+    expect(segmentationModelPath(spec)).toBe("models/isnet-anime.onnx");
+  });
+
+  it("isnet-general-use 沿用 ISNet 预处理（输入名 input_image）", () => {
+    const spec = getSegmentationModelSpec("isnet-general-use");
+    expect(spec.inputName).toBe("input_image");
+    expect(spec.inputWidth).toBe(1024);
+    expect(spec.mean).toEqual([0.5, 0.5, 0.5]);
+    expect(spec.std).toEqual([1, 1, 1]);
   });
 
   it("按 id 取模型，u2netp / silueta 沿用 u2net 预处理参数", () => {

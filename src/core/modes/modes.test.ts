@@ -122,6 +122,7 @@ function runAggressive(
 }
 
 describe("getModeProfile · 规格 4.4 默认表", () => {
+  // S11 起 profile 增加 outline 精修策略（可选字段，四模式均提供）。
   const expected: Record<ImageMode, ModeProfile> = {
     photo: {
       defaultDithering: "none",
@@ -131,6 +132,15 @@ describe("getModeProfile · 规格 4.4 默认表", () => {
       colorMergeThreshold: 5,
       localRefinePasses: 2,
       neighborCandidateCount: 8,
+      outline: {
+        rim: true,
+        rimStrength: 0.75,
+        darkSubjectMaxL: 45,
+        snapDelta: 30,
+        snapTolerance: 5,
+        featureMaxSize: 3,
+        featureContrast: 28,
+      },
     },
     anime: {
       defaultDithering: "none",
@@ -140,6 +150,15 @@ describe("getModeProfile · 规格 4.4 默认表", () => {
       colorMergeThreshold: 4,
       localRefinePasses: 3,
       neighborCandidateCount: 8,
+      outline: {
+        rim: true,
+        rimStrength: 0.8,
+        darkSubjectMaxL: 45,
+        snapDelta: 26,
+        snapTolerance: 6,
+        featureMaxSize: 4,
+        featureContrast: 25,
+      },
     },
     logo: {
       defaultDithering: "none",
@@ -149,6 +168,15 @@ describe("getModeProfile · 规格 4.4 默认表", () => {
       colorMergeThreshold: 2,
       localRefinePasses: 2,
       neighborCandidateCount: 8,
+      outline: {
+        rim: true,
+        rimStrength: 0.9,
+        darkSubjectMaxL: 45,
+        snapDelta: 22,
+        snapTolerance: 4,
+        featureMaxSize: 6,
+        featureContrast: 18,
+      },
     },
     landscape: {
       defaultDithering: "none",
@@ -158,6 +186,15 @@ describe("getModeProfile · 规格 4.4 默认表", () => {
       colorMergeThreshold: 6,
       localRefinePasses: 3,
       neighborCandidateCount: 8,
+      outline: {
+        rim: false,
+        rimStrength: 0,
+        darkSubjectMaxL: 45,
+        snapDelta: 34,
+        snapTolerance: 4,
+        featureMaxSize: 2,
+        featureContrast: 30,
+      },
     },
   };
 
