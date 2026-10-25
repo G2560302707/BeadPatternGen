@@ -4,8 +4,9 @@
  * 不二次量化、无抗锯齿，格心/格角像素可被脚本精确采样。
  *
  * 结构自上而下：暖粉渐变背景 → 页眉信息栏（SIZE/PALETTE/COLORS/BEADS + 红描边标签，
- * 位图字体仅 ASCII）→ 白色圆角图纸卡片（红 L 角标 + 行列号 + 每 5 格分区线）→
- * 圆角色卡图例（按用量排序）→ 脚注。
+ * 位图字体仅 ASCII）→ 白色圆角图纸卡片（红 L 角标 + 四边行列号 + 每 5 格分区线）→
+ * 圆角色卡图例（按用量排序）→ 脚注。格尺寸 8–64px：格子越大像素越多，放大查看越清晰；
+ * 需要「放大永不模糊」时改用 exportSvg（矢量）。
  */
 
 import { encode as encodePng } from "fast-png";
@@ -34,7 +35,7 @@ import {
 import { GLYPH_H, bitmapTextWidth, forEachBitmapPixel } from "./bitmap-font";
 import { ExportError } from "./errors";
 
-export const PNG_CELL_SIZES = [8, 16, 24, 32] as const;
+export const PNG_CELL_SIZES = [8, 16, 24, 32, 48, 64] as const;
 export type PngCellSize = (typeof PNG_CELL_SIZES)[number];
 
 /** 禁止一次性分配超过该边长的像素缓冲；超限时自动缩小格点装进画布。 */
@@ -85,13 +86,15 @@ interface CardMetrics {
 
 function metrics(cell: number, showCoords: boolean): CardMetrics {
   const s = clamp(cell / 16, 0.5, 2);
+  // 标尺带随格尺寸继续放大（上限 4 倍）：48/64px 超清导出时行列号仍与格子相称。
+  const rs = clamp(cell / 16, 0.5, 4);
   return {
     pad: Math.max(8, Math.round(20 * s)),
     headerH: Math.max(26, Math.round(52 * s)),
     gap: Math.max(8, Math.round(16 * s)),
     cardPad: Math.max(6, Math.round(14 * s)),
     cardR: Math.max(4, Math.round(12 * s)),
-    ruler: showCoords ? Math.max(12, Math.round(20 * s)) : 0,
+    ruler: showCoords ? Math.max(12, Math.round(20 * rs)) : 0,
     swatchW: Math.max(36, Math.round(72 * s)),
     swatchH: Math.max(20, Math.round(40 * s)),
     gapX: Math.max(6, Math.round(10 * s)),
@@ -100,7 +103,7 @@ function metrics(cell: number, showCoords: boolean): CardMetrics {
   };
 }
 
-function computeLayout(
+export function computeLayout(
   pattern: BeadPattern,
   options: PngExportOptions,
   stats: PatternStats,
@@ -122,20 +125,34 @@ function computeLayout(
   return result;
 }
 
+export type CardLayout = {
+  layout: PngLayout;
+  m: CardMetrics;
+  cardX: number;
+  cardY: number;
+  cardW: number;
+  cardH: number;
+  perRow: number;
+  legendRows: number;
+};
+
+export type { CardMetrics };
+
 function computeLayoutAt(
   pattern: BeadPattern,
   options: PngExportOptions,
   stats: PatternStats,
   cell: number,
-) {
+): CardLayout {
   const m = metrics(cell, options.showCoords);
   const gridW = pattern.width * cell;
   const gridH = pattern.height * cell;
-  const cardW = gridW + m.ruler + m.cardPad * 2;
-  const cardH = gridH + m.ruler + m.cardPad * 2;
+  // 卡片四边都留标尺带：行列号画在上/下/左/右四周（与 PDF 一致）。
+  const cardW = gridW + m.ruler * 2 + m.cardPad * 2;
+  const cardH = gridH + m.ruler * 2 + m.cardPad * 2;
   const minContentW = Math.max(260, Math.round(500 * clamp(cell / 16, 0.5, 2)));
   const width = Math.max(cardW, minContentW) + m.pad * 2;
-  const cardX = m.pad + (width - m.pad * 2 - cardW) / 2;
+  const cardX = Math.round(m.pad + (width - m.pad * 2 - cardW) / 2);
   const cardY = m.pad + m.headerH + m.gap;
   const gridOriginX = Math.round(cardX + m.cardPad + m.ruler);
   const gridOriginY = Math.round(cardY + m.cardPad + m.ruler);
@@ -428,6 +445,14 @@ function drawCardFrame(
   );
 }
 
+/** 标尺数字字号档位：取「能装进标尺带（留 4px 边距）」的最大档（位图字高 = 7×档位）。 */
+export function pickRulerLabelScale(longestLabel: string, ruler: number): number {
+  for (const candidate of [4, 3, 2] as const) {
+    if (bitmapTextWidth(longestLabel, candidate) <= ruler - 4) return candidate;
+  }
+  return 1;
+}
+
 function drawRulers(
   data: Uint8Array,
   layout: PngLayout,
@@ -437,33 +462,32 @@ function drawRulers(
   if (m.ruler <= 0) return;
   const soft = hexRgb(INK_SOFT);
   const { gridOriginX, gridOriginY, cellSize } = layout;
-  const topY = Math.round(gridOriginY - m.ruler / 2 - 3);
+  // 数字字号取「能装进标尺带的最大档」：格尺寸越大数字越大，放大看依然清晰。
+  const longest = String(Math.max(pattern.width - 1, pattern.height - 1, 1));
+  const labelScale = pickRulerLabelScale(longest, m.ruler);
+  const glyphH = GLYPH_H * labelScale;
+  const gridW = pattern.width * cellSize;
+  const gridH = pattern.height * cellSize;
   for (let line = CARD_MAJOR_EVERY; line < pattern.width; line += CARD_MAJOR_EVERY) {
     const label = String(line);
-    const tw = bitmapTextWidth(label, 1);
-    plotText(
-      data,
-      layout.width,
-      layout.height,
-      label,
-      Math.round(gridOriginX + line * cellSize - tw / 2),
-      topY,
-      soft,
-      1,
-    );
+    const tx = Math.round(gridOriginX + line * cellSize - bitmapTextWidth(label, labelScale) / 2);
+    plotText(data, layout.width, layout.height, label, tx, Math.round(gridOriginY - m.ruler / 2 - glyphH / 2), soft, labelScale);
+    plotText(data, layout.width, layout.height, label, tx, Math.round(gridOriginY + gridH + m.ruler / 2 - glyphH / 2), soft, labelScale);
   }
   for (let line = CARD_MAJOR_EVERY; line < pattern.height; line += CARD_MAJOR_EVERY) {
     const label = String(line);
-    const th = 7;
+    const tx = Math.round(gridOriginX - m.ruler / 2 - bitmapTextWidth(label, labelScale) / 2);
+    const ty = Math.round(gridOriginY + line * cellSize - glyphH / 2);
+    plotText(data, layout.width, layout.height, label, tx, ty, soft, labelScale);
     plotText(
       data,
       layout.width,
       layout.height,
       label,
-      Math.round(gridOriginX - m.ruler + 2),
-      Math.round(gridOriginY + line * cellSize - th / 2),
+      Math.round(gridOriginX + gridW + m.ruler / 2 - bitmapTextWidth(label, labelScale) / 2),
+      ty,
       soft,
-      1,
+      labelScale,
     );
   }
 }
@@ -496,7 +520,9 @@ function drawGrid(
       if (showCodes) {
         const ink = inkRgbOnCard(pattern.palette[cell]?.hex ?? "#FFFFFF");
         const code = pattern.palette[cell]?.code ?? "";
-        const scale = cellSize >= 24 ? 2 : 1;
+        // 字号随格尺寸放大（48/64px 超清导出放大看依然清晰）；装不下就降一档。
+        let scale = clamp(Math.round(cellSize / 16), 1, 4);
+        while (scale > 1 && bitmapTextWidth(code, scale) > cellSize - 2) scale -= 1;
         const tw = bitmapTextWidth(code, scale);
         // 色号宽于格子（±1px 容差）时跳过，避免渗进邻格。
         if (tw <= cellSize + 2) {

@@ -10,6 +10,7 @@ export {
   MAX_CANVAS_EDGE,
 } from "./png";
 export type { PngCellSize, PngExportOptions, PngLayout } from "./png";
+export { exportSvg } from "./svg";
 export { exportCsv } from "./csv";
 export { exportProjectJson, parseProjectJson } from "./json";
 export { exportPdf, pdfPageCapacity, planMakeLayout, PAGE_WARN_COUNT } from "./pdf";

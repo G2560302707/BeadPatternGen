@@ -104,6 +104,37 @@ export function appendLassoPoint(
   return true;
 }
 
+/** 套索点击（非拖动）切换单格勾选的最大位移（格）：起点到终点低于它视为点击。 */
+export const LASSO_CLICK_MAX_MOVE = 0.35;
+
+/**
+ * 合并两批选区（去重 + 升序）：套索多次拖动把新圈的区域累加进选区，
+ * 而不是替换上一次的结果。
+ */
+export function unionSelection(
+  base: readonly number[] | null,
+  extra: readonly number[],
+): number[] {
+  if (!base || base.length === 0) return [...extra].sort((a, b) => a - b);
+  const merged = new Set(base);
+  for (const index of extra) merged.add(index);
+  return [...merged].sort((a, b) => a - b);
+}
+
+/** 单格切换勾选：已选则取消，未选则加入（升序返回，空结果为 []）。 */
+export function toggleSelectionCell(
+  selection: readonly number[] | null,
+  index: number,
+): number[] {
+  const set = new Set(selection ?? []);
+  if (set.has(index)) {
+    set.delete(index);
+  } else {
+    set.add(index);
+  }
+  return [...set].sort((a, b) => a - b);
+}
+
 export function selectionBBox(
   indices: readonly number[],
   width: number,

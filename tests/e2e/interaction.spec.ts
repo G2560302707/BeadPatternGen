@@ -133,12 +133,17 @@ test("lasso keeps up with fast strokes and fills the looped area", async ({ page
 
 test("paint click toggles: second click reverts to generated color", async ({ page }) => {
   await generatePattern(page, "32", "32");
-  const box = (await page.locator(".pattern-stage").boundingBox())!;
-  const point = { x: box.x + box.width * 0.3, y: box.y + box.height * 0.5 };
+  const stage = page.locator(".pattern-stage");
+  // 点色卡会移动舞台：画布坐标必须现取现用（与首个用例同样的坑，
+  // 用开头算好的固定坐标会在选色后打偏到别的格子）。
+  const clickStage = async (fx = 0.3, fy = 0.5) => {
+    const box = (await stage.boundingBox())!;
+    await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
+  };
 
   // 吸管读原色（读完自动停在画笔）。
   await page.getByTestId("edit-tool-eyedrop").click();
-  await page.mouse.click(point.x, point.y);
+  await clickStage();
   const original = await paintSwatchCode(page);
 
   // 从色卡选一个不同的颜色并上色。
@@ -146,15 +151,15 @@ test("paint click toggles: second click reverts to generated color", async ({ pa
   const different = codes.find((code) => code !== original);
   expect(different).toBeTruthy();
   await page.locator(".usage-row", { hasText: different! }).first().click();
-  await page.mouse.click(point.x, point.y);
+  await clickStage();
   await page.getByTestId("edit-tool-eyedrop").click();
-  await page.mouse.click(point.x, point.y);
+  await clickStage();
   expect(await paintSwatchCode(page)).toBe(different);
 
   // 吸管读后已自动回画笔：再点一下 = 取消，恢复生成色。
-  await page.mouse.click(point.x, point.y);
+  await clickStage();
   await page.getByTestId("edit-tool-eyedrop").click();
-  await page.mouse.click(point.x, point.y);
+  await clickStage();
   expect(await paintSwatchCode(page)).toBe(original);
 });
 
@@ -208,4 +213,88 @@ test("keyboard shortcuts switch tools and undo", async ({ page }) => {
   await expect(page.getByTestId("edit-undo")).toBeEnabled();
   await page.keyboard.press("Control+z");
   await expect(page.getByTestId("edit-undo")).toBeDisabled();
+});
+
+test("lasso drag accumulates regions, click toggles a cell, clear button resets", async ({ page }) => {
+  await generatePattern(page, "32", "32");
+  const stage = page.locator(".pattern-stage");
+  await page.getByTestId("edit-tool-select-lasso").click();
+
+  // 每次圈选现取舞台包围盒：点工具按钮可能触发滚动，过期坐标会画到画布外。
+  // 起笔点必须在网格内（菱形顶点），否则 cellAtScreen 返回 null、套索不起笔。
+  const loop = async (fx: number, fy: number) => {
+    const box = (await stage.boundingBox())!;
+    const cx = box.x + box.width * fx;
+    const cy = box.y + box.height * fy;
+    const rx = box.width * 0.08;
+    const ry = box.height * 0.06;
+    await page.mouse.move(cx, cy - ry);
+    await page.mouse.down();
+    await page.mouse.move(cx + rx, cy, { steps: 3 });
+    await page.mouse.move(cx, cy + ry, { steps: 3 });
+    await page.mouse.move(cx - rx, cy, { steps: 3 });
+    await page.mouse.move(cx, cy - ry, { steps: 3 });
+    await page.mouse.up();
+  };
+
+  // 第一圈圈选后第二圈累加：若套索覆盖旧选区，第二圈后……这里用单格点击 +
+  // 清空按钮一起验证选区内容的存续。
+  await loop(0.3, 0.25);
+  await expect(page.getByTestId("edit-fill")).toBeEnabled();
+  await loop(0.7, 0.75);
+  await expect(page.getByTestId("edit-fill")).toBeEnabled();
+
+  // 点击第一圈内的一格：取消勾选该格，但第二圈仍在 → 填充仍可用。
+  const click = async (fx: number, fy: number) => {
+    const fresh = (await stage.boundingBox())!;
+    await page.mouse.click(fresh.x + fresh.width * fx, fresh.y + fresh.height * fy);
+  };
+  await click(0.3, 0.25);
+  await expect(page.getByTestId("edit-fill")).toBeEnabled();
+
+  // 「取消勾选」一键清空全部。
+  await page.getByTestId("selection-clear").click();
+  await expect(page.getByTestId("edit-fill")).toBeDisabled();
+
+  // 再点同一格：重新勾选 → 填充恢复可用。
+  await click(0.3, 0.25);
+  await expect(page.getByTestId("edit-fill")).toBeEnabled();
+});
+
+test("paint drag over painted cells restores generated colors", async ({ page }) => {
+  await generatePattern(page, "32", "32");
+  const stage = page.locator(".pattern-stage");
+  const clickStage = async (fx: number, fy: number) => {
+    const box = (await stage.boundingBox())!;
+    await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
+  };
+  const drag = async (fx0: number, fx1: number) => {
+    const box = (await stage.boundingBox())!;
+    const y = box.y + box.height * 0.5;
+    await page.mouse.move(box.x + box.width * fx0, y);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * fx1, y, { steps: 5 });
+    await page.mouse.up();
+  };
+
+  // 吸管读起点原色，选一个不同色从起点向右拖动涂上。
+  // 断言统一落在起点格：mock 图纸里路径中段的生成色可能恰好等于所涂颜色，
+  // 只有「落笔格必被涂上、还原笔必作用于它」是确定性事实。
+  await page.getByTestId("edit-tool-eyedrop").click();
+  await clickStage(0.3, 0.5);
+  const original = await paintSwatchCode(page);
+  const codes = await page.locator(".usage-row code").allInnerTexts();
+  const different = codes.find((code) => code !== original);
+  expect(different).toBeTruthy();
+  await page.locator(".usage-row", { hasText: different! }).first().click();
+  await drag(0.3, 0.5);
+  await page.getByTestId("edit-tool-eyedrop").click();
+  await clickStage(0.3, 0.5);
+  expect(await paintSwatchCode(page)).toBe(different);
+
+  // 吸管读后已自动回画笔（画笔色 = different）：从同一起点再拖一遍 = 整笔还原。
+  await drag(0.3, 0.5);
+  await page.getByTestId("edit-tool-eyedrop").click();
+  await clickStage(0.3, 0.5);
+  expect(await paintSwatchCode(page)).toBe(original);
 });

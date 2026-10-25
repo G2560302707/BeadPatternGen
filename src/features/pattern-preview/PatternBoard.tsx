@@ -24,6 +24,7 @@ import {
   EMPTY_CELL,
   expandBrushCells,
   fillSelection,
+  LASSO_CLICK_MAX_MOVE,
   lassoIndices,
   mirrorSelection,
   paintValue,
@@ -32,7 +33,9 @@ import {
   regenSelection,
   replaceColorInSelection,
   rotateSelection,
+  toggleSelectionCell,
   translateSelection,
+  unionSelection,
   type PatternEditTool,
 } from "../../core/pattern";
 import { useWorkspaceStore } from "../../state/workspace-store";
@@ -78,6 +81,11 @@ export function PatternBoard({ pattern }: PatternBoardProps) {
   const pendingRef = useRef(new Map<number, { index: number; from: number; to: number }>());
   const selectStartRef = useRef<{ x: number; y: number } | null>(null);
   const lassoRef = useRef<Array<{ x: number; y: number }>>([]);
+  /** 套索笔画开始时的选区快照：拖动把新圈区域累加到它上面，不覆盖旧选择。 */
+  const selectionBaseRef = useRef<number[] | null>(null);
+  const lassoDownIndexRef = useRef<number | null>(null);
+  /** 本次画笔笔画是否为「还原」模式：起笔格已是画笔色 → 整笔恢复生成色。 */
+  const strokeRestoreRef = useRef(false);
   const lastMoveIndexRef = useRef<number | null>(null);
 
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -520,6 +528,16 @@ export function PatternBoard({ pattern }: PatternBoardProps) {
             {label}
           </button>
         ))}
+        <button
+          type="button"
+          className="btn btn--small"
+          data-testid="selection-clear"
+          disabled={!selection?.length}
+          title="取消全部勾选（Esc 同效）"
+          onClick={() => setSelection(null)}
+        >
+          取消勾选
+        </button>
         {([1, 2, 3] as const).map((n) => (
           <button
             key={n}
@@ -808,7 +826,8 @@ export function PatternBoard({ pattern }: PatternBoardProps) {
       ) : null}
       <p className="hint">
         滚轮缩放，空格拖动画布。B/E/I/L/R/V 切换工具，[ / ] 调笔刷，Ctrl+Z / Ctrl+Y 撤销重做，Esc
-        清选区。画笔点一下上色、再点一下恢复生成色；右键拖动 = 橡皮。框选/套索后画笔默认只作用于选区内（可关）；已改过的格子会锁定，选区再生成不会覆盖。
+        清选区。画笔拖动上色：起笔格已是当前色则整笔恢复生成色（再上一遍 = 取消）；右键拖动 =
+        橡皮。套索拖动圈选会累加（可圈多块），点一下格子即可勾选 / 取消勾选，「取消勾选」清空全部。框选/套索后画笔默认只作用于选区内（可关）；已改过的格子会锁定，选区再生成不会覆盖。
       </p>
       <div
         ref={wrapRef}
@@ -866,8 +885,10 @@ export function PatternBoard({ pattern }: PatternBoardProps) {
             return;
           }
           if (editTool === "select-lasso") {
+            // 拖动 = 在现有选区上累加新圈区域；点击（路径几乎没动）在抬起时切换单格。
+            selectionBaseRef.current = selection ?? [];
+            lassoDownIndexRef.current = hit.index;
             lassoRef.current = [{ x: hit.x + 0.5, y: hit.y + 0.5 }];
-            setSelection([hit.index]);
             strokeRef.current = true;
             redrawRef.current();
             return;
@@ -879,13 +900,18 @@ export function PatternBoard({ pattern }: PatternBoardProps) {
           activeButtonRef.current = event.button;
           strokeRef.current = true;
           pendingRef.current = new Map();
+          // 笔画级切换：起笔格已是画笔色 → 整笔为「还原」模式（再上一遍 = 恢复生成色）。
+          strokeRestoreRef.current =
+            editTool === "paint" && !rightErase && pattern.cells[hit.index] === value;
           for (const target of strokeCellsFor(hit.index)) {
-            const currentValue = pattern.cells[target];
-            // 点击切换：已涂成画笔色的格子，再点一下恢复成生成时的样子。
-            const writeValue =
-              editTool === "paint" && !rightErase && currentValue === value
-                ? (baseCells?.[target] ?? currentValue)
-                : value;
+            let writeValue = value;
+            if (strokeRestoreRef.current) {
+              // 还原笔只处理当前为画笔色的格：写回生成基底色。
+              const current = pattern.cells[target];
+              if (current !== value) continue;
+              writeValue = baseCells?.[target] ?? current;
+              if (writeValue === current) continue;
+            }
             const change = collectStrokeChange(pattern.cells, target, writeValue, pendingRef.current);
             if (change) stampPatternCell(target, writeValue);
           }
@@ -907,11 +933,17 @@ export function PatternBoard({ pattern }: PatternBoardProps) {
           const box = wrap.getBoundingClientRect();
           // 套索：每个指针事件都记点（含插值补点），出界也记。
           // 不能等「进入新格子」才记——快速划动会漏采样，多边形自交、选区缺块。
+          // 选区 = 起笔快照 ∪ 新圈区域：多次拖动累加勾选，不覆盖之前的选择。
           if (editTool === "select-lasso" && strokeRef.current) {
             const gx = (event.clientX - box.left - viewRef.current.offsetX) / viewRef.current.scale;
             const gy = (event.clientY - box.top - viewRef.current.offsetY) / viewRef.current.scale;
             if (appendLassoPoint(lassoRef.current, gx, gy)) {
-              setSelection(lassoIndices(lassoRef.current, pattern.width, pattern.height));
+              setSelection(
+                unionSelection(
+                  selectionBaseRef.current,
+                  lassoIndices(lassoRef.current, pattern.width, pattern.height),
+                ),
+              );
             }
             redrawRef.current(); // 橡皮筋路径逐事件跟随。
             return;
@@ -959,9 +991,18 @@ export function PatternBoard({ pattern }: PatternBoardProps) {
           if (value === null) return;
           const live = useWorkspaceStore.getState().pattern;
           if (!live) return;
+          const restore =
+            strokeRestoreRef.current && editTool === "paint" && !rightErase;
           for (const target of strokeCellsFor(hit.index)) {
-            const change = collectStrokeChange(live.cells, target, value, pendingRef.current);
-            if (change) stampPatternCell(target, value);
+            let writeValue = value;
+            if (restore) {
+              const current = live.cells[target];
+              if (current !== value) continue;
+              writeValue = baseCells?.[target] ?? current;
+              if (writeValue === current) continue;
+            }
+            const change = collectStrokeChange(live.cells, target, writeValue, pendingRef.current);
+            if (change) stampPatternCell(target, writeValue);
           }
         }}
         onPointerUp={() => {
@@ -970,7 +1011,21 @@ export function PatternBoard({ pattern }: PatternBoardProps) {
           if (editTool === "select-rect") selectStartRef.current = null;
           if (editTool === "select-lasso") {
             strokeRef.current = false;
+            // 点击 / 拖动按「路径总长度」区分：闭环套索会回到起点，
+            // 不能看首尾距离——否则闭合圈会被误判成点击而切掉起始格。
+            let pathLength = 0;
+            for (let i = 1; i < lassoRef.current.length; i += 1) {
+              const a = lassoRef.current[i - 1]!;
+              const b = lassoRef.current[i]!;
+              pathLength += Math.hypot(b.x - a.x, b.y - a.y);
+            }
             lassoRef.current = [];
+            selectionBaseRef.current = null;
+            // 点击：切换单格勾选——已选取消、未选加入，可反复点。
+            if (pathLength < LASSO_CLICK_MAX_MOVE && lassoDownIndexRef.current !== null) {
+              setSelection(toggleSelectionCell(selection, lassoDownIndexRef.current));
+            }
+            lassoDownIndexRef.current = null;
           }
           // 画笔右键笔画按「橡皮」入账；其余按当前工具。
           const kind = activeButtonRef.current === 2 ? "erase" : editTool;
@@ -979,6 +1034,7 @@ export function PatternBoard({ pattern }: PatternBoardProps) {
             pendingRef.current = new Map();
           }
           strokeRef.current = false;
+          strokeRestoreRef.current = false;
           activeButtonRef.current = 0;
         }}
       >

@@ -39,7 +39,7 @@ export {
 } from "./commands";
 export type { CellChange, EditCommand, EditKind } from "./commands";
 export { applyChangesToStats, emptyLocked, markLocked } from "./stats-delta";
-export { appendLassoPoint } from "./selection";
+export { appendLassoPoint, LASSO_CLICK_MAX_MOVE } from "./selection";
 export { expandBrushCells } from "./brush";
 export {
   copySelection,
@@ -51,7 +51,9 @@ export {
   replaceColorInSelection,
   rotateSelection,
   rotateSelectionCW,
+  toggleSelectionCell,
   translateSelection,
+  unionSelection,
 } from "./selection";
 export type { ClipboardPatch, SelectionTransformResult } from "./selection";
 export {

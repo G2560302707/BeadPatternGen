@@ -10,13 +10,14 @@ import {
   encodeProject,
 } from "../core/pattern";
 import type { BeadColor, BeadPattern } from "../core/pattern";
-import { PDF_CJK_CHARSET } from "./card-style";
+import { hexRgb, INK_SOFT, PDF_CJK_CHARSET } from "./card-style";
 import { assertExportReady } from "./assert";
 import { exportCsv } from "./csv";
 import { exportProjectJson } from "./json";
 import { balancedCapacity } from "./capacity";
 import { exportPdf, planMakeLayout } from "./pdf";
 import { cellCenterSample, cellCornerSample, exportPng, renderPngRgba } from "./png";
+import { exportSvg } from "./svg";
 
 const PALETTE: BeadColor[] = [
   { code: "S01", name: "White", hex: "#EAEEF3", manufacturer: "Artkal" },
@@ -291,5 +292,104 @@ describe("broken stats", () => {
     expect(() => exportPng(pattern)).toThrow();
     expect(() => exportCsv(pattern)).toThrow();
     expect(() => exportProjectJson(pattern)).toThrow();
+  });
+});
+
+describe("PNG supersize & four-side rulers", () => {
+  it("exports at 48/64 px cells within the max canvas edge", () => {
+    const pattern = fixture(12, 12);
+    for (const cellSize of [48, 64] as const) {
+      const bytes = exportPng(pattern, {
+        cellSize,
+        showGrid: true,
+        showCoords: true,
+        showCodes: true,
+        showLegend: true,
+      });
+      const decoded = decodePng(bytes);
+      expect(decoded.width).toBeLessThanOrEqual(8000);
+      expect(decoded.height).toBeLessThanOrEqual(8000);
+    }
+  });
+
+  it("draws coordinate labels on all four ruler sides", () => {
+    const pattern = fixture(12, 8);
+    const options = {
+      cellSize: 16 as const,
+      showGrid: true,
+      showCoords: true,
+      showCodes: false,
+      showLegend: false,
+    };
+    const { layout, data } = renderPngRgba(pattern, options);
+    const soft = hexRgb(INK_SOFT);
+    const ruler = layout.gutter;
+    const left = layout.gridOriginX;
+    const top = layout.gridOriginY;
+    const right = left + pattern.width * layout.cellSize;
+    const bottom = top + pattern.height * layout.cellSize;
+    const hasSoftPixelIn = (x0: number, y0: number, x1: number, y1: number): boolean => {
+      for (let y = y0; y < y1; y += 1) {
+        for (let x = x0; x < x1; x += 1) {
+          const offset = (y * layout.width + x) * 4;
+          if (data[offset] === soft.r && data[offset + 1] === soft.g && data[offset + 2] === soft.b) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+    expect(hasSoftPixelIn(left, top - ruler, right, top)).toBe(true);
+    expect(hasSoftPixelIn(left, bottom, right, bottom + ruler)).toBe(true);
+    expect(hasSoftPixelIn(left - ruler, top, left, bottom)).toBe(true);
+    expect(hasSoftPixelIn(right, top, right + ruler, bottom)).toBe(true);
+  });
+});
+
+describe("SVG", () => {
+  it("renders the unified card layout as scalable markup", () => {
+    const svg = exportSvg(fixture(), {
+      cellSize: 16,
+      showGrid: true,
+      showCoords: true,
+      showCodes: true,
+      showLegend: true,
+    });
+    expect(svg.startsWith('<?xml version="1.0" encoding="UTF-8"?>')).toBe(true);
+    expect(svg).toContain('xmlns="http://www.w3.org/2000/svg"');
+    expect(svg).toContain("<line");
+    expect(svg).toContain("<text");
+    expect(svg).toContain("</svg>");
+    expect(svg).not.toMatch(/NaN|undefined/);
+  });
+
+  it("keeps exact palette colors and merges horizontal color runs", () => {
+    const pattern = fixture(4, 3);
+    const svg = exportSvg(pattern, {
+      cellSize: 16,
+      showGrid: false,
+      showCoords: false,
+      showCodes: false,
+      showLegend: false,
+    });
+    expect(svg).toContain(`fill="${(PALETTE[0]?.hex ?? "").toLowerCase()}"`);
+    expect(svg).toContain(`fill="${(PALETTE[1]?.hex ?? "").toLowerCase()}"`);
+    // 4×3 交替棋盘：每行 4 段同色 run，共 12 个格子 rect（另有卡片/图例等结构矩形）。
+    const rects = svg.match(/<rect /g) ?? [];
+    expect(rects.length).toBeGreaterThan(12);
+  });
+
+  it("labels coordinates every five cells on all four sides", () => {
+    const pattern = fixture(12, 8);
+    const svg = exportSvg(pattern, {
+      cellSize: 16,
+      showGrid: true,
+      showCoords: true,
+      showCodes: false,
+      showLegend: false,
+    });
+    // 宽 12 → 顶/底标 5、10；高 8 → 左/右标 5：「5」共出现 4 次。
+    expect((svg.match(/>5<\/text>/g) ?? []).length).toBe(4);
+    expect((svg.match(/>10<\/text>/g) ?? []).length).toBe(2);
   });
 });

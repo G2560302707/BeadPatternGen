@@ -31,11 +31,15 @@ test("upload crop generate save reload export", async ({ page }) => {
   const reopened = await page.getByTestId("pattern-board").getAttribute("data-pattern-id");
   expect(reopened).toBe(firstId);
 
-  // 四种格式导出
+  // 五种格式导出
   await page.getByTestId("step-export").click();
   const png = page.waitForEvent("download");
   await page.getByTestId("export-png").click();
   expect((await png).suggestedFilename()).toMatch(/\.png$/);
+
+  const svg = page.waitForEvent("download");
+  await page.getByTestId("export-svg").click();
+  expect((await svg).suggestedFilename()).toMatch(/\.svg$/);
 
   const pdf = page.waitForEvent("download");
   await page.getByTestId("export-pdf-make").click();

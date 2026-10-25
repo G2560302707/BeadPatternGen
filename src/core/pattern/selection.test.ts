@@ -12,7 +12,9 @@ import {
   replaceColorInSelection,
   rotateSelection,
   rotateSelectionCW,
+  toggleSelectionCell,
   translateSelection,
+  unionSelection,
 } from "./selection";
 import { applyChanges } from "./commands";
 
@@ -234,5 +236,22 @@ describe("selection rotate / translate (R2)", () => {
     const result = translateSelection(cells, [0, 1], 2, 1, 0, 0);
     expect(result.changes).toEqual([]);
     expect(result.selection).toEqual([0, 1]);
+  });
+});
+
+describe("unionSelection / toggleSelectionCell（套索累加勾选）", () => {
+  it("unions a new lasso pass into the existing selection", () => {
+    expect(unionSelection([1, 2], [2, 5, 3])).toEqual([1, 2, 3, 5]);
+    expect(unionSelection([], [4, 1])).toEqual([1, 4]);
+    expect(unionSelection(null, [3, 1])).toEqual([1, 3]);
+  });
+
+  it("toggles single cells on and off", () => {
+    let selection = toggleSelectionCell(null, 4);
+    expect(selection).toEqual([4]);
+    selection = toggleSelectionCell(selection, 1);
+    expect(selection).toEqual([1, 4]);
+    selection = toggleSelectionCell(selection, 4);
+    expect(selection).toEqual([1]);
   });
 });

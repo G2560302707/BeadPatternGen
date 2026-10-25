@@ -8,6 +8,7 @@ import {
   exportPng,
   exportProjectJson,
   exportShareCardPng,
+  exportSvg,
   planMakeLayout,
   type PaperSizeName,
   type PngCellSize,
@@ -91,6 +92,8 @@ export function ExportPanel() {
           <option value={16}>16px</option>
           <option value={24}>24px</option>
           <option value={32}>32px</option>
+          <option value={48}>48px（超清）</option>
+          <option value={64}>64px（超清）</option>
         </select>
       </div>
       <label>
@@ -246,6 +249,27 @@ export function ExportPanel() {
         }
       >
         {busy === "png" ? "导出中…" : "导出 PNG"}
+      </button>
+      <button
+        type="button"
+        className="btn btn--block"
+        data-testid="export-svg"
+        title="矢量图：任意缩放不失真，行列号 / 网格线 / 色号全部保留"
+        disabled={busy !== null}
+        onClick={() =>
+          void run("svg", () => {
+            const svg = exportSvg(pattern, {
+              cellSize,
+              showGrid,
+              showCoords,
+              showCodes: pngCodes,
+              showLegend,
+            });
+            downloadText(`${pattern.title || "pattern"}.svg`, svg, "image/svg+xml");
+          })
+        }
+      >
+        {busy === "svg" ? "导出中…" : "导出 SVG（矢量，放大不失真）"}
       </button>
       <button
         type="button"
