@@ -1,0 +1,51 @@
+# BeadPatternGen · Caddy 2 配置
+#
+# 用法：
+#   1. 把 dist/ 放到 /srv/bead/；
+#   2. 把本文件放到 /etc/caddy/Caddyfile（或 caddy run --config deploy/Caddyfile）；
+#   3. 把 bead.example.com 换成你的域名并解析 A/AAAA 记录。
+# Caddy 会自动申请并续期 HTTPS 证书。
+
+bead.example.com {
+	root * /srv/bead
+	encode @compressible zstd gzip
+
+	# 关键：跨源隔离。缺少时分割退回单线程 WASM。
+	header {
+		Cross-Origin-Opener-Policy same-origin
+		Cross-Origin-Embedder-Policy require-corp
+		X-Content-Type-Options nosniff
+	}
+
+	# 大二进制不压缩（onnx 是稠密格式，wasm 压缩收益也有限）。
+	@compressible not path /models/* /ort/*
+
+	# 哈希资源一年强缓存。
+	@immutable path /assets/*
+	header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+	# 模型 / ORT 运行时 / 字体：30 天缓存。
+	@longlived path /models/* /ort/* /fonts/* /samples/*
+	header @longlived Cache-Control "public, max-age=2592000"
+
+	# 个别系统 MIME 表缺这两项时兜底。
+	@wasm path *.wasm
+	header @wasm Content-Type application/wasm
+	@mjs path *.mjs
+	header @mjs Content-Type text/javascript
+
+	# 模型 / 运行时缺失时返回真实 404，不落到 index.html。
+	handle /models/* {
+		file_server
+	}
+	handle /ort/* {
+		file_server
+	}
+
+	# 其余路径：静态文件优先，未命中回退 index.html（HashRouter 实际用不到，
+	# 但直接访问未知路径时仍能打开应用）。
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+}

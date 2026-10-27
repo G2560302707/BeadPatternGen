@@ -84,7 +84,8 @@ const RULER = 16;
 const CARD_PAD = 10;
 
 /** 中文字体子集（与分享卡片同源文案）；加载失败时所有文案回退英文。 */
-const ZH_FONT_URL = "/fonts/pindou-zh-subset.ttf";
+// 走 BASE_URL，子路径部署（如 /bead/）时不会 404。
+const ZH_FONT_URL = `${import.meta.env.BASE_URL}fonts/pindou-zh-subset.ttf`;
 let zhFontBytesPromise: Promise<Uint8Array | null> | null = null;
 
 function loadZhFontBytes(): Promise<Uint8Array | null> {

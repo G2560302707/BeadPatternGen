@@ -1,0 +1,26 @@
+# Netlify / Cloudflare Pages 通用响应头配置。
+# 构建完成后复制到产物根目录：cp deploy/_headers dist/_headers
+# 然后以 dist 作为 publish / output 目录部署。
+
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  X-Content-Type-Options: nosniff
+
+/index.html
+  Cache-Control: no-cache
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/fonts/*
+  Cache-Control: public, max-age=2592000
+
+/models/*
+  Cache-Control: public, max-age=2592000
+
+/ort/*
+  Cache-Control: public, max-age=2592000
+
+/samples/*
+  Cache-Control: public, max-age=2592000

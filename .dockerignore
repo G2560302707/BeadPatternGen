@@ -1,0 +1,31 @@
+# 构建上下文瘦身：模型与 ort 在镜像内按需生成，避免把 400+ MB 本地文件传给 Docker。
+.git
+node_modules
+dist
+dist-ssr
+coverage
+test-results
+playwright-report
+.vite
+*.tsbuildinfo
+
+# 本地工具状态与素材
+.zcode
+.workbuddy
+bench
+参考图集
+测试图集
+测试输出
+测试输出-S11
+算法优化库
+scripts/.font-cache
+scripts/.shots
+
+# 构建不需要的文档与测试
+docs
+tests
+playwright.config.ts
+
+# 大体积生成物（由 pnpm models:download / pnpm ort:sync 在镜像内生成）
+public/models
+public/ort
