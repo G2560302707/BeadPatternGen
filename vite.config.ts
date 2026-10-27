@@ -1,11 +1,10 @@
 import { fileURLToPath, URL } from "node:url";
 import react from "@vitejs/plugin-react";
-import { defineConfig, type Plugin } from "vitest/config";
+import { defineConfig, type Plugin } from "vite";
 
 /**
  * COOP/COEP：启用 SharedArrayBuffer → onnxruntime-web 多线程 wasm。
  * 页面只加载同源资源（blob/data/同源 ort 与模型），符合 require-corp。
- * E2E 的隐私拦截只看请求 URL，不受响应头影响。
  */
 function crossOriginIsolation(): Plugin {
   return {
@@ -40,9 +39,5 @@ export default defineConfig({
   },
   worker: {
     format: "es",
-  },
-  test: {
-    environment: "node",
-    include: ["src/**/*.test.ts"],
   },
 });

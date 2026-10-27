@@ -13,14 +13,13 @@ export default tseslint.config(
       "dist",
       "node_modules",
       "public/ort",
-      "tests/e2e",
-      "playwright.config.ts",
     ],
   },
   {
     files: ["scripts/**/*.mjs", "eslint.config.js", "vite.config.ts"],
     languageOptions: {
       globals: {
+        AbortSignal: "readonly",
         Buffer: "readonly",
         atob: "readonly",
         caches: "readonly",

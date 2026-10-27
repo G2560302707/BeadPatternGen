@@ -1,8 +1,8 @@
 # 豆豆图纸 · BeadPatternGen
 
-纯前端的拼豆（Perler / 熨斗豆）图纸生成器：导入任意图片，经过抠图构图、裁剪、色卡量化、抖动与局部优化，生成可以直接照着拼的图纸，并导出分享图纸 PNG / 分页 PDF / CSV 用量清单 / JSON 工程。所有计算均在浏览器本地完成——`src` 中没有任何网络请求（E2E 已验证），图片不会离开你的电脑。
+纯前端的拼豆（Perler / 熨斗豆）图纸生成器：导入任意图片，经过抠图构图、裁剪、色卡量化、抖动与局部优化，生成可以直接照着拼的图纸，并导出分享图纸 PNG / SVG 矢量图 / 分页 PDF / CSV 用量清单 / JSON 工程。所有计算均在浏览器本地完成——`src` 中没有任何网络请求，图片不会离开你的电脑。
 
-产品形态为「一个家 + 六步流程」：首页（作品库）→ 导入 → 抠图构图（可选）→ 画布裁剪 → 调色生成 → 精修 → 导出分享，顶部步进器随时跳转。视觉提供 6 套可切换主题（默认 🌸樱粉少女，二次元可爱风；🍇香芋啵啵 / 🍵抹茶奶绿 / 🥤海盐汽水 / 🌙月夜宫阙 / ☁️云朵白），字体为自托管 OFL 子集（站酷快乐体 + Baloo 2，`pnpm fonts` 重建）。
+产品形态为「一个家 + 六步流程」：首页（作品库）→ 导入 → 抠图构图（可选）→ 画布裁剪 → 调色生成 → 精修 → 导出分享，顶部步进器随时跳转。视觉提供 8 套可切换主题（默认 🌸樱粉少女，二次元可爱风；🍇香芋啵啵 / 🍵抹茶手账 / 🥤海盐汽水 / 🌙月夜宫阙 / ☁️云朵白 / ✉️复古信笺 / 👾像素工坊），字体为自托管 OFL 子集（站酷快乐体 + Baloo 2，`pnpm fonts` 重建）。
 
 ## 功能特性
 
@@ -11,18 +11,18 @@
 - 🧭 **四模式生成策略** — `photo`（照片/人物）、`anime`（二次元，强制无抖动保描边）、`logo`（文字/几何边缘）、`landscape`（大面积渐变），每种模式围绕「边缘保护 vs 孤立点修复」的目标函数给出不同的保守程度。
 - 🔀 **确定性抖动** — Floyd–Steinberg，同输入永远同输出。
 - 📊 **质量诊断** — 孤立豆、碎片、细线、高色差格自动检测，生成可读报告。
-- ✂️ **主体识别与构图**（二期）— 浏览器端运行 u2netp 分割模型（onnxruntime-web，WASM / WebGPU 自动回退），抠出主体后按占比 / 边距做构图合成，支持透明 / 纯色 / 图片背景。
+- ✂️ **主体识别与构图**（二期）— 浏览器端运行 ISNet / u2netp 分割模型（onnxruntime-web，WASM / WebGPU 自动回退），抠出主体后按占比 / 边距做构图合成，支持透明 / 纯色 / 图片背景。
 - 👁️ **只读预览** — 缩放、平移、网格、原图对照。
 - 📤 **多格式导出，统一「分享卡片」版式** — 分享图纸 PNG、图纸 PNG、制作/预览 PDF 共用同一套视觉（页眉信息栏 / 白色圆角图纸卡 + 红角标 / 每 5 格分区线 / 按用量排序的圆角图例，`card-style.ts` 单一来源）；PDF 中文页眉走内嵌 Noto Sans SC 子集字体（`pnpm fonts:pdf` 重建，缺失时自动回退英文）。另有 CSV 用量统计（UTF-8 BOM，Excel 直开）与 JSON 工程文件。
 - 📏 **市售板子规格** — 5mm 标准板（29×29）与 2.6mm 小豆板（26×26）预设一键套用，自动换算拼板数与成品厘米尺寸。
 - 💾 **本地保存** — IndexedDB 三仓存储（工程 / 图纸 / 缩略图），刷新后无原图也能恢复只读图纸；配额 80% 预警。
-- 🔒 **隐私优先** — 去掉一切 CDN 与外站字体，Playwright E2E 验证「外站请求数为零」。
+- 🔒 **隐私优先** — 去掉一切 CDN 与外站字体，页面只加载同源资源。
 
 ## 快速开始
 
 ```bash
 pnpm install
-pnpm models:download   # 下载 u2netp 分割模型（约 4.4 MB，模型不随仓库分发）
+pnpm models:download   # 下载四个分割模型（约 386 MB，模型不随仓库分发）
 pnpm ort:sync          # 同步 onnxruntime-web 的 wasm 资源
 pnpm dev               # 启动开发服务器
 ```
@@ -32,12 +32,22 @@ pnpm dev               # 启动开发服务器
 | 命令 | 说明 |
 | --- | --- |
 | `pnpm build` | 类型检查 + 生产构建 |
-| `pnpm test` | Vitest 单元测试 |
-| `pnpm test:e2e` | Playwright 端到端测试 |
 | `pnpm lint` / `pnpm typecheck` | ESLint / TypeScript 检查 |
 | `pnpm validate:palette` | 校验色卡数据完整性 |
 | `pnpm fonts` | 重建自托管字体子集（下载 OFL 字体 → 按站点词汇表子集化） |
 | `pnpm samples` | 重新生成内置示例图（public/samples） |
+
+## 部署
+
+纯静态站点，构建产物 `dist/` 交给任意静态服务器即可，没有后端与数据库。完整步骤（COOP/COEP、HTTPS、模型体积、nginx / Docker / Caddy / 静态平台配置、验收与回滚）见 [部署文档](docs/部署文档.md)。
+
+```bash
+pnpm models:download   # 约 386 MB 分割模型
+pnpm build
+pnpm deploy:check https://你的域名/   # 上线后自动验收响应头、MIME 与模型
+```
+
+现成配置在 [deploy/](deploy/)：`nginx.conf`、`Dockerfile`、`docker-compose.yml`、`Caddyfile`、`_headers`、`vercel.json`。
 
 ## 目录结构
 
@@ -46,7 +56,7 @@ src/
 ├── app/          # 外壳（AppShell / 路由 / 主题引擎 / 品牌 / 全站样式）
 ├── pages/        # 分步页面（首页 + 导入/构图/画布/生成/精修/导出 + 法务页）
 ├── ui/           # 通用 UI 组件（步进器 / 弹层 / 对话框 / 页面框架件）
-├── design/       # 设计系统：令牌、6 套主题 CSS、字体、豆豆吉祥物 SVG
+├── design/       # 设计系统：令牌、8 套主题 CSS、字体、豆豆吉祥物 SVG
 ├── components/   # 状态反馈组件（空态 / 错误 / 加载）
 ├── features/     # 业务功能面板（导入 / 裁剪 / 设置 / 预览 / 导出 …）
 ├── core/         # 纯算法内核（无 DOM 依赖）
@@ -56,7 +66,7 @@ src/
 │   ├── dithering/   # Floyd–Steinberg 确定性抖动
 │   ├── modes/       # 四模式策略与局部优化
 │   ├── quality/     # 孤立豆 / 碎片 / 细线诊断
-│   ├── subject/     # 主体分割（u2netp）与蒙版后处理
+│   ├── subject/     # 主体分割（ISNet / u2netp）与蒙版后处理
 │   ├── composition/ # 构图几何与像素合成
 │   ├── pipeline/    # 生成流水线装配
 │   └── pattern/     # 图纸数据模型与统计
@@ -71,4 +81,4 @@ src/
 
 [MIT](LICENSE)
 
-Artkal S 色卡数据来自 [maxcleme/beadcolors](https://github.com/maxcleme/beadcolors)（`src/core/palette/NOTICE-maxcleme-beadcolors.txt`），MARD 221 色卡数据来自 [HansBug/pindou-color-data](https://github.com/HansBug/pindou-color-data)（`src/core/palette/NOTICE-hansbug-pindou-color-data.txt`），均为社区测量值而非品牌官方数值；分割模型 u2netp 遵循 Apache-2.0。UI 字体为 [站酷快乐体](https://github.com/googlefonts/zcool-kuaile) 与 [Baloo 2](https://github.com/googlefonts/baloo2)，均遵循 SIL Open Font License（许可文本随 `public/fonts/` 分发，`pnpm fonts` 可重建子集）。模型与 onnxruntime wasm 资源均不随仓库分发，按需下载。
+Artkal S 色卡数据来自 [maxcleme/beadcolors](https://github.com/maxcleme/beadcolors)（`src/core/palette/NOTICE-maxcleme-beadcolors.txt`），MARD 221 色卡数据来自 [HansBug/pindou-color-data](https://github.com/HansBug/pindou-color-data)（`src/core/palette/NOTICE-hansbug-pindou-color-data.txt`），均为社区测量值而非品牌官方数值；四个分割模型（isnet-anime / isnet-general-use / silueta / u2netp）均遵循 Apache-2.0。UI 字体为 [站酷快乐体](https://github.com/googlefonts/zcool-kuaile) 与 [Baloo 2](https://github.com/googlefonts/baloo2)，均遵循 SIL Open Font License（许可文本随 `public/fonts/` 分发，`pnpm fonts` 可重建子集）。模型与 onnxruntime wasm 资源均不随仓库分发，按需下载。
